@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Search, ChevronDown, TrendingUp, TrendingDown, Bot, Send, DollarSign, Brain, BarChart, Users, Flame } from 'lucide-react';
 
@@ -10,47 +9,91 @@ const colors = {
   bg1: '#121212',
   bg1Hover: '#191919',
   down: '#CA3F64',
-  up: '#25A750',
+  up: '#bcff2f', // 荧光绿
   textPrimary: '#E5E7EB',
   textSecondary: '#9CA3AF',
   border: 'rgba(255, 255, 255, 0.1)',
-  blue: '#3B82F6',
+  blue: '#bcff2f', // 预测线颜色，与 up 相同
 };
 
 // --- 模拟数据 ---
 
-// 主图表模拟数据
-const generateMainChartData = () => {
+// 为每个枪支和平台生成唯一的价格数据
+const generatePriceData = (basePrice: number, seed: number, platform: string) => {
   let data = [];
-  let price = 100;
-  let predictedPrice = 100;
+  let price = basePrice;
+  
+  // 不同平台的价格差异系数
+  const platformMultiplier = {
+    'BUFF': 0.95,
+    'Steam': 1.0,
+    'UU': 0.98,
+    'C5GAME': 0.96,
+  }[platform] || 1.0;
+  
+  price = price * platformMultiplier;
+  const fluctuation = price / 10;
+  const predFluctuation = price / 12;
+  
+  // 使用 seed 来生成确定性的随机数
+  const seededRandom = (s: number) => {
+    const x = Math.sin(s) * 10000;
+    return x - Math.floor(x);
+  };
+
+  let predictedPrice = price;
+  
   for (let i = 0; i < 30; i++) {
-    const date = `10-${i + 1}`;
-    price += (Math.random() - 0.45) * 10;
-    if (price < 50) price = 50;
+    const randomValue = seededRandom(seed + i * 137);
+    price += (randomValue - 0.45) * fluctuation;
+    if (price < basePrice * platformMultiplier / 2) price = basePrice * platformMultiplier / 2;
     
-    // 模拟预测数据（从第23天开始）
+    // 历史数据（前23天）
     if (i < 23) {
-      data.push({ date, price: price.toFixed(2), predictedPrice: null });
+      data.push({ 
+        date: `10-${i + 1}`, 
+        price: parseFloat(price.toFixed(2)), 
+        predictedPrice: null 
+      });
     } else if (i === 23) {
-      predictedPrice = price; // 预测从当前价格开始
-      data.push({ date, price: price.toFixed(2), predictedPrice: predictedPrice.toFixed(2) });
+      predictedPrice = price;
+      data.push({ 
+        date: `10-${i + 1}`, 
+        price: parseFloat(price.toFixed(2)), 
+        predictedPrice: parseFloat(predictedPrice.toFixed(2)) 
+      });
     } else {
-      predictedPrice += (Math.random() - 0.4) * 8; // 预测趋势
-      if (predictedPrice < 60) predictedPrice = 60;
-      data.push({ date, price: null, predictedPrice: predictedPrice.toFixed(2) });
+      // 预测数据（后7天）- 有可能上涨或下跌
+      const predRandom = seededRandom(seed + i * 173);
+      predictedPrice += (predRandom - 0.4) * predFluctuation;
+      if (predictedPrice < basePrice * platformMultiplier / 1.8) {
+        predictedPrice = basePrice * platformMultiplier / 1.8;
+      }
+      data.push({ 
+        date: `10-${i + 1}`, 
+        price: null, 
+        predictedPrice: parseFloat(predictedPrice.toFixed(2)) 
+      });
     }
   }
   return data;
 };
 
+// 生成迷你图数据（与主图表数据一致）
+const generateMiniChartData = (fullData: any[]) => {
+  // 只取历史数据的价格
+  return fullData
+    .filter(d => d.price !== null)
+    .map(d => d.price);
+};
+
 // 热门枪支模拟数据
 const hotItems = [
-  { id: 1, name: 'AK-47 | 火神', price: 320.50, change: 2.5, cap: '1.2M', data: [5, 8, 10, 7, 12, 11, 13] },
-  { id: 2, name: 'AWP | 巨龙传说', price: 8500.00, change: -1.2, cap: '850K', data: [15, 12, 10, 13, 11, 10, 9] },
-  { id: 3, name: 'M4A4 | 咆哮', price: 4200.00, change: 5.1, cap: '700K', data: [3, 4, 6, 8, 7, 10, 12] },
-  { id: 4, name: '蝴蝶刀 | 渐变大理石', price: 1500.00, change: 0.5, cap: '2.1M', data: [8, 8, 9, 9, 10, 9.5, 10] },
-  { id: 5, name: 'USP-S | 永恒', price: 85.00, change: -3.0, cap: '300K', data: [12, 11, 10, 10, 9, 9, 8] },
+  { id: 1, name: 'AK-47 | 火神', price: 320.50, change: 2.5, cap: '1.2M', seed: 1001 },
+  { id: 2, name: 'AWP | 巨龙传说', price: 8500.00, change: -1.2, cap: '850K', seed: 2002 },
+  { id: 3, name: 'M4A4 | 咆哮', price: 4200.00, change: 5.1, cap: '700K', seed: 3003 },
+  { id: 4, name: '蝴蝶刀 | 渐变大理石', price: 1500.00, change: 0.5, cap: '2.1M', seed: 4004 },
+  { id: 5, name: 'USP-S | 永恒', price: 85.00, change: -3.0, cap: '300K', seed: 5005 },
 ];
 
 // 平台差价模拟数据
@@ -94,14 +137,16 @@ const Header = () => (
   <header style={{ backgroundColor: colors.bg1, borderBottom: `1px solid ${colors.border}` }} className="px-4 md:px-6 py-3 sticky top-0 z-50">
     <nav className="flex items-center justify-between max-w-7xl mx-auto">
       <div className="flex items-center gap-4">
+        {/* Logo */}
+        <img src="/csgodog.png" alt="CSGO-Dog Logo" className="h-10 w-10 object-contain" />
         <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
           CSGO-Dog
         </span>
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
-          <a href="#" className="hover:text-white">市场</a>
-          <a href="#" className="hover:text-white">交易</a>
-          <a href="#" className="hover:text-white">AI 分析</a>
-          <a href="#" className="hover:text-white">社区</a>
+          <a href="#market" className="hover:text-white">市场</a>
+          <a href="#arbitrage" className="hover:text-white">交易</a>
+          <a href="#ai-advisor" className="hover:text-white">AI 分析</a>
+          <a href="#community" className="hover:text-white">社区</a>
         </div>
       </div>
       <div className="flex items-center gap-4">
@@ -127,7 +172,56 @@ const Header = () => (
 
 // 2. 市场概览 (K线图 + 热门)
 const MarketOverview = () => {
-  const chartData = useMemo(() => generateMainChartData(), []);
+  const platforms = ['BUFF', 'Steam', 'UU', 'C5GAME'];
+  const [selectedPlatform, setSelectedPlatform] = useState(platforms[0]);
+  const [selectedItem, setSelectedItem] = useState(hotItems[0]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+
+  // 使用 useState 存储图表数据
+  const [chartData, setChartData] = useState([]);
+
+  // 当选择的枪支或平台改变时,生成新的图表数据
+  useEffect(() => {
+    setMounted(true);
+    if (selectedItem && selectedPlatform) {
+      const newData = generatePriceData(selectedItem.price, selectedItem.seed, selectedPlatform);
+      setChartData(newData);
+    }
+  }, [selectedItem, selectedPlatform]);
+
+  // 计算当前价格和预测涨跌
+  const { currentPrice, predictedPrice, priceChange, changePercentage } = useMemo(() => {
+    if (!mounted || chartData.length === 0) {
+      return {
+        currentPrice: selectedItem.price,
+        predictedPrice: selectedItem.price,
+        priceChange: 0,
+        changePercentage: 0,
+      };
+    }
+    
+    // 当前价格是历史数据的最后一个有效点
+    const lastPriceEntry = chartData.slice(0, 24).reverse().find(d => d.price !== null);
+    const current = lastPriceEntry ? lastPriceEntry.price : selectedItem.price;
+
+    // 预测价格是预测数据的最后一个点
+    const lastPredicted = chartData[chartData.length - 1];
+    const predicted = lastPredicted && lastPredicted.predictedPrice !== null 
+      ? lastPredicted.predictedPrice 
+      : current;
+
+    const change = predicted - current;
+    const changePct = (change / current) * 100;
+    
+    return {
+      currentPrice: current,
+      predictedPrice: predicted,
+      priceChange: change,
+      changePercentage: changePct,
+    };
+  }, [mounted, chartData, selectedItem]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -143,37 +237,116 @@ const MarketOverview = () => {
     return null;
   };
 
+  // NEW: 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 scroll-mt-20" id="market">
       {/* 左侧主图表 */}
       <div 
         className="lg:col-span-2 rounded-lg p-4 md:p-6" 
         style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
       >
-        <h2 className="text-xl font-semibold mb-4 text-white">AK-47 | 火神 (大盘趋势)</h2>
+        
+        {/* UPDATED: 标题和下拉平台切换 */}
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-xl font-semibold text-white">
+              {selectedItem.name} ({selectedPlatform} 趋势)
+          </h2>
+          {/* NEW: 平台下拉菜单 */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="px-4 py-2 text-sm font-medium rounded-full bg-black text-gray-300 hover:bg-gray-800 flex items-center gap-1"
+              style={{ border: `1px solid ${colors.border}` }}
+            >
+              {selectedPlatform} <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isDropdownOpen && (
+              <div 
+                className="absolute right-0 mt-2 w-32 rounded-md shadow-lg py-1 z-10" 
+                style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
+              >
+                {platforms.map(platform => (
+                  <button
+                    key={platform}
+                    onClick={() => {
+                      setSelectedPlatform(platform);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                  >
+                    {platform}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 实时价格和预测价格展示 */}
+        <div className="mb-6 flex items-baseline gap-8">
+          <div className="flex flex-col">
+            <p className="text-sm text-gray-400">实时价格 ({selectedPlatform})</p>
+            <p className="text-4xl font-bold" style={{color: colors.up}}>
+              ${currentPrice.toFixed(2)}
+            </p>
+          </div>
+          <div className="flex flex-col">
+            <p className="text-sm text-gray-400">AI 7日预测</p>
+            <div className="flex items-center gap-2">
+              <span 
+                className="text-2xl font-bold" 
+                style={{color: priceChange >= 0 ? colors.up : colors.down}}
+              >
+                {priceChange >= 0 ? '+' : '-'}${Math.abs(priceChange).toFixed(2)}
+              </span>
+              <span 
+                className="text-sm font-medium" 
+                style={{color: priceChange >= 0 ? colors.up : colors.down}}
+              >
+                ({priceChange >= 0 ? '+' : '-'}{Math.abs(changePercentage).toFixed(2)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        
         <div className="h-64 md:h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={colors.border} strokeOpacity={0.5} />
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="5 5" stroke="#4B5563" strokeOpacity={0.3} vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: colors.textSecondary }} axisLine={{ stroke: colors.border }} tickLine={{ stroke: colors.border }} />
-              <YAxis domain={['dataMin - 20', 'dataMax + 20']} tick={{ fontSize: 12, fill: colors.textSecondary }} axisLine={{ stroke: colors.border }} tickLine={{ stroke: colors.border }} />
+              <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12, fill: colors.textSecondary }} axisLine={{ stroke: colors.border }} tickLine={{ stroke: colors.border }} width={60} />
               <Tooltip content={<CustomTooltip active={undefined} payload={undefined} label={undefined} />} />
               <Line 
                 type="monotone" 
                 dataKey="price" 
                 stroke={colors.up} 
-                strokeWidth={2} 
+                strokeWidth={2.5} 
                 dot={false} 
                 name="当前价格" 
+                style={{ filter: `drop-shadow(0 0 2px ${colors.up})` }}
               />
               <Line 
                 type="monotone" 
                 dataKey="predictedPrice" 
-                stroke={colors.blue} 
-                strokeWidth={2} 
-                strokeDasharray="5 5" 
+                stroke={priceChange >= 0 ? colors.up : colors.down}
+                strokeWidth={3} 
+                strokeDasharray="5 5"
                 dot={false} 
                 name="AI 7日预测" 
+                style={{ filter: `drop-shadow(0 0 2px ${priceChange >= 0 ? colors.up : colors.down})` }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -190,26 +363,43 @@ const MarketOverview = () => {
           <a href="#" className="text-sm text-blue-400 hover:text-blue-300">查看全部</a>
         </div>
         <div className="space-y-3">
-          {hotItems.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-3 rounded-lg transition-colors" style={{ backgroundColor: colors.bg0 }} >
-              <div className="flex items-center gap-3">
-                <img src={`https://placehold.co/40x30/252525/FFFFFF?text=${item.name.substring(0,2)}`} alt={item.name} className="w-10 h-8 rounded object-cover" />
-                <div>
-                  <p className="text-sm font-medium text-white">{item.name}</p>
-                  <p className="text-xs text-gray-400">市值: ${item.cap}</p>
+          {hotItems.map(item => {
+            // 为每个枪支生成当前平台的数据
+            const itemData = generatePriceData(item.price, item.seed, selectedPlatform);
+            const miniChartData = generateMiniChartData(itemData);
+            
+            return (
+              <div 
+                key={item.id} 
+                className="flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer focus:outline-none" 
+                style={{ backgroundColor: item.id === selectedItem.id ? colors.bg1Hover : colors.bg0 }}
+                onClick={() => setSelectedItem(item)}
+                tabIndex={-1}
+              >
+                {/* 栏位 1: Item details */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <img src={`https://placehold.co/40x30/252525/FFFFFF?text=${item.name.substring(0,2)}`} alt={item.name} className="w-10 h-8 rounded object-cover" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{item.name}</p>
+                    <p className="text-xs text-gray-400">市值: ${item.cap}</p>
+                  </div>
+                </div>
+                
+                {/* 栏位 2: MiniChart */}
+                <div className="hidden sm:flex sm:justify-center sm:w-24">
+                  <MiniChart data={miniChartData} color={item.change > 0 ? colors.up : colors.down} />
+                </div>
+                
+                {/* 栏位 3: Price and Change */}
+                <div className="text-right w-20"> 
+                  <p className="text-sm font-semibold text-white">${item.price.toFixed(2)}</p>
+                  <p className={`text-sm font-medium`} style={{color: item.change > 0 ? colors.up : colors.down}}>
+                    {item.change > 0 ? '+' : ''}{item.change.toFixed(1)}%
+                  </p>
                 </div>
               </div>
-              <div className="hidden sm:block">
-                <MiniChart data={item.data} color={item.change > 0 ? colors.up : colors.down} />
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-white">${item.price.toFixed(2)}</p>
-                <p className={`text-sm font-medium ${item.change > 0 ? 'text-green-500' : 'text-red-500'}`} style={{color: item.change > 0 ? colors.up : colors.down}}>
-                  {item.change > 0 ? '+' : ''}{item.change.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -252,7 +442,8 @@ const PositionAdvisor = ({ getPrediction }) => {
 
   return (
     <section 
-      className="mt-6 rounded-lg p-4 md:p-6" 
+      id="ai-advisor" // 添加 ID
+      className="mt-6 rounded-lg p-4 md:p-6 scroll-mt-20" // 添加 scroll-mt-20
       style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
     >
       <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
@@ -278,7 +469,7 @@ const PositionAdvisor = ({ getPrediction }) => {
                 min="0"
                 max="100"
                 value={strategy}
-                onChange={(e) => setStrategy(Number(e.target.value))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStrategy(Number(e.target.value))}
                 className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                 style={{background: `linear-gradient(to right, ${colors.up}, ${colors.down})`}}
               />
@@ -386,7 +577,8 @@ const BargainPredictor = () => {
 // 5. 平台差价
 const PlatformArbitrage = () => (
   <section 
-    className="mt-6 rounded-lg p-4 md:p-6" 
+    id="arbitrage" // 添加 ID
+    className="mt-6 rounded-lg p-4 md:p-6 scroll-mt-20" // 添加 scroll-mt-20
     style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
   >
     <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
@@ -428,7 +620,8 @@ const PlatformArbitrage = () => (
 // 6. 社区动态
 const CommunityFeed = () => (
   <section 
-    className="mt-6 rounded-lg p-4 md:p-6" 
+    id="community" // 添加 ID
+    className="mt-6 rounded-lg p-4 md:p-6 scroll-mt-20" // 添加 scroll-mt-20
     style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
   >
     <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
@@ -551,6 +744,11 @@ const AIAssistant = ({ getPrediction }) => {
 
 // --- 主应用 App ---
 export default function App() {
+
+  // 页面加载时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   /**
    * 调用 Gemini API 获取虚构的预测理由

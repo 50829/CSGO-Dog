@@ -24,3 +24,98 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 自定义滑动条样式 */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* WebKit/Blink 浏览器 (Chrome, Safari, Edge) */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #bcff2f 0%, #7fd321 100%);
+  cursor: pointer;
+  border: 3px solid #000;
+  box-shadow: 0 0 10px rgba(188, 255, 47, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(188, 255, 47, 0.7), 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #bcff2f 0%, #7fd321 100%);
+  cursor: pointer;
+  border: 3px solid #000;
+  box-shadow: 0 0 10px rgba(188, 255, 47, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(188, 255, 47, 0.7), 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(0.95);
+}
+
+/* 去除 number input 的上下箭头 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* 去除焦点时的白色边框 */
+button:focus,
+input:focus,
+div:focus,
+a:focus {
+  outline: none !important;
+}
+
+/* 去除点击时的白色边框 */
+button:focus-visible,
+
+input:focus-visible,
+div:focus-visible,
+a:focus-visible {
+  outline: 2px solid transparent !important;
+}
+
+/* 去除所有元素的 tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* 确保 SVG 元素也不会有焦点框 */
+svg:focus {
+  outline: none !important;
+}
+
+/* Recharts 图表容器去除焦点 */
+.recharts-wrapper:focus,
+.recharts-surface:focus {
+  outline: none !important;
+}
