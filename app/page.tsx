@@ -770,6 +770,13 @@ const MarketOverview = () => {
             const itemData = generatePriceData(item.price, item.seed, selectedPlatform);
             const miniChartData = generateMiniChartData(itemData);
             
+            // 使用与主屏幕相同的计算逻辑：从图表数据中找到最近的价格
+            const itemCurrentPrice = itemData.slice().reverse().find(d => d.price !== null)?.price || item.price;
+            
+            // 计算7天预期收益（与主屏幕逻辑一致）
+            const sevenDaysAgo = itemData.find(d => d.price !== null)?.price || itemCurrentPrice;
+            const itemChangePercentage = ((itemCurrentPrice - sevenDaysAgo) / sevenDaysAgo) * 100;
+            
             return (
               <div 
                 key={item.id} 
@@ -794,14 +801,14 @@ const MarketOverview = () => {
                 
                 {/* 栏位 2: MiniChart */}
                 <div className="hidden sm:flex sm:justify-center sm:w-24">
-                  <MiniChart data={miniChartData} color={item.change > 0 ? colors.up : colors.down} />
+                  <MiniChart data={miniChartData} color={itemChangePercentage > 0 ? colors.up : colors.down} />
                 </div>
                 
                 {/* 栏位 3: Price and Change */}
                 <div className="text-right w-20"> 
-                  <p className="text-sm font-semibold text-white">¥{item.price.toFixed(2)}</p>
-                  <p className={`text-sm font-medium`} style={{color: item.change > 0 ? colors.up : colors.down}}>
-                    {item.change > 0 ? '+' : ''}{item.change.toFixed(1)}%
+                  <p className="text-sm font-semibold text-white">¥{itemCurrentPrice.toFixed(2)}</p>
+                  <p className={`text-sm font-medium`} style={{color: itemChangePercentage > 0 ? colors.up : colors.down}}>
+                    {itemChangePercentage > 0 ? '+' : ''}{itemChangePercentage.toFixed(1)}%
                   </p>
                 </div>
               </div>
