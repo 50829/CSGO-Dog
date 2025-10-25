@@ -693,7 +693,206 @@ const PositionAdvisor = ({ getPrediction }) => {
   );
 };
 
-// 4. 抄底预测
+// 4. SteamDT 实时数据
+const SteamDTLiveData = () => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/steamdt');
+        if (!response.ok) throw new Error('获取数据失败');
+        const result = await response.json();
+        if (result.success) {
+          setData(result.data);
+        } else {
+          setError(result.error || '未知错误');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '网络错误');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <section 
+        className="mt-6 rounded-lg p-4 md:p-6" 
+        style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
+      >
+        <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
+          <Flame className="w-6 h-6 text-orange-400" />
+          SteamDT 实时数据
+        </h2>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-400">加载中...</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <section 
+        className="mt-6 rounded-lg p-4 md:p-6" 
+        style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
+      >
+        <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
+          <Flame className="w-6 h-6 text-orange-400" />
+          SteamDT 实时数据
+        </h2>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-red-400">{error || '无法加载数据'}</div>
+        </div>
+      </section>
+    );
+  }
+
+  // 合并历史数据和预测数据用于图表显示
+  const chartData = [...data.prices, ...data.futureTrend.map((item: any) => ({ ...item, predicted: true }))];
+
+  return (
+    <section 
+      className="mt-6 rounded-lg p-4 md:p-6" 
+      style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
+    >
+      <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
+        <Flame className="w-6 h-6 text-orange-400" />
+        SteamDT 实时数据
+      </h2>
+
+      {/* 饰品信息卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="rounded-lg p-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+          <div className="text-sm text-gray-400 mb-1">当前价格</div>
+          <div className="text-2xl font-bold text-white">¥{data.currentPrice.toFixed(2)}</div>
+        </div>
+        <div className="rounded-lg p-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+          <div className="text-sm text-gray-400 mb-1">24h 涨跌</div>
+          <div className={`text-2xl font-bold`} style={{ color: data.change24h >= 0 ? colors.up : colors.down }}>
+            {data.change24h >= 0 ? '+' : ''}{data.change24h.toFixed(2)}%
+          </div>
+        </div>
+        <div className="rounded-lg p-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+          <div className="text-sm text-gray-400 mb-1">24h 成交量</div>
+          <div className="text-2xl font-bold text-white">{data.volume24h} 件</div>
+        </div>
+        <div className="rounded-lg p-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+          <div className="text-sm text-gray-400 mb-1">磨损度</div>
+          <div className="text-2xl font-bold text-yellow-400">{data.wear?.toFixed(4) || 'N/A'}</div>
+        </div>
+      </div>
+
+      {/* 饰品名称 */}
+      <div className="mb-4">
+        <h3 className="text-lg font-medium text-white">{data.name}</h3>
+        <p className="text-sm text-gray-400 mt-1">数据来源: SteamDT.com</p>
+      </div>
+
+      {/* 价格趋势图表 */}
+      <div className="rounded-lg p-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+        <h3 className="text-md font-semibold text-white mb-4">价格走势 (实时数据 + 7天预测)</h3>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+            <XAxis 
+              dataKey="date" 
+              stroke={colors.textSecondary}
+              tick={{ fill: colors.textSecondary, fontSize: 11 }}
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              tickFormatter={(value) => {
+                // 判断是否包含时间信息
+                if (value.includes(' ')) {
+                  // 格式: "2025-01-15 14:00" -> "01/15 14:00"
+                  const [datePart, timePart] = value.split(' ');
+                  const [year, month, day] = datePart.split('-');
+                  return `${month}/${day} ${timePart}`;
+                } else {
+                  // 预测数据只有日期
+                  const date = new Date(value);
+                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                }
+              }}
+            />
+            <YAxis 
+              stroke={colors.textSecondary}
+              tick={{ fill: colors.textSecondary, fontSize: 12 }}
+              tickFormatter={(value) => `¥${value.toFixed(0)}`}
+            />
+            <Tooltip
+              contentStyle={{ 
+                backgroundColor: colors.bg1, 
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                color: colors.textPrimary,
+                padding: '12px'
+              }}
+              formatter={(value: number, name: string, props: any) => {
+                if (name === 'predicted') return null;
+                const entry = props.payload;
+                const lines = [
+                  ['价格', `¥${value.toFixed(2)}`]
+                ];
+                if (entry.volume !== undefined && entry.volume !== null) {
+                  lines.push(['成交量', `${entry.volume} 件`]);
+                }
+                return lines;
+              }}
+              labelFormatter={(label) => {
+                // 显示完整的日期时间
+                if (label.includes(' ')) {
+                  return `时间: ${label}`;
+                } else {
+                  return `日期: ${label}`;
+                }
+              }}
+            />
+            {/* 历史价格线 */}
+            <Line 
+              type="monotone" 
+              dataKey="price" 
+              stroke={colors.up} 
+              strokeWidth={2}
+              dot={false}
+              connectNulls={false}
+            />
+            {/* 未来趋势线(虚线) */}
+            <Line 
+              type="monotone" 
+              dataKey={(entry: any) => entry.predicted ? entry.price : null}
+              stroke={colors.blue} 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              connectNulls={true}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="flex items-center justify-center gap-6 mt-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5" style={{ backgroundColor: colors.up }}></div>
+            <span className="text-sm text-gray-400">历史价格（小时级）</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 border-t-2 border-dashed" style={{ borderColor: colors.blue }}></div>
+            <span className="text-sm text-gray-400">预测趋势</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// 5. 抄底预测
 const BargainPredictor = () => {
   // 高收益配件 - 稳定升值潜力
   const highReturnItems = [
@@ -845,7 +1044,7 @@ const BargainPredictor = () => {
   );
 };
 
-// 5. 平台差价
+// 6. 平台差价
 const PlatformArbitrage = () => (
   <section 
     id="arbitrage" // 添加 ID
@@ -890,7 +1089,7 @@ const PlatformArbitrage = () => (
   </section>
 );
 
-// 6. 社区动态
+// 7. 社区动态
 const CommunityFeed = () => (
   <section 
     id="community" // 添加 ID
@@ -917,7 +1116,7 @@ const CommunityFeed = () => (
     </div>
   </section>
 );
-// 7. AI 助手
+// 8. AI 助手
 const AIAssistant = ({ getPrediction }) => {
   const [messages, setMessages] = useState([
     { role: 'ai', content: '你好！我是 CSGO-Dog AI 助手。我可以回答关于市场趋势、饰品价值或投资策略的任何问题。' }
@@ -1063,6 +1262,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto p-4 md:p-6">
         <MarketOverview />
         <PositionAdvisor getPrediction={getGeminiPrediction} />
+        <SteamDTLiveData />
         <BargainPredictor />
         <PlatformArbitrage />
         <CommunityFeed />
