@@ -75,7 +75,7 @@ async function fetchSteamDTRealData(itemId: string = "495302338"): Promise<Steam
     // 实际上每条数据包含：[时间戳, 价格, 成交量, ...]
     const prices = result.data.map(item => {
       const timestamp = item[0]; // 时间戳（秒）
-      const price = item[1] / 100; // 价格（分转元）
+      const price = item[1]; // 价格（已经是正确单位，不需要转换）
       const volume = item[2] || 0; // 成交量
       
       return {
