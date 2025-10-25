@@ -89,19 +89,19 @@ const generateMiniChartData = (fullData: any[]) => {
 
 // 热门枪支模拟数据
 const hotItems = [
-  { id: 1, name: 'AK-47 | 火神', price: 320.50, change: 2.5, cap: '1.2M', seed: 1001 },
-  { id: 2, name: 'AWP | 巨龙传说', price: 8500.00, change: -1.2, cap: '850K', seed: 2002 },
-  { id: 3, name: 'M4A4 | 咆哮', price: 4200.00, change: 5.1, cap: '700K', seed: 3003 },
-  { id: 4, name: '蝴蝶刀 | 渐变大理石', price: 1500.00, change: 0.5, cap: '2.1M', seed: 4004 },
-  { id: 5, name: 'USP-S | 永恒', price: 85.00, change: -3.0, cap: '300K', seed: 5005 },
+  { id: 1, name: 'AK-47 | 火神 (崭新出厂)', hashname: 'AK-47 | Vulcan (Factory New)', price: 5699.00, change: 2.5, cap: '1.2M', seed: 24281 },
+  { id: 2, name: 'AWP | 巨龙传说 (久经沙场)', hashname: 'AWP | Dragon Lore (Field-Tested)', price: 48999.00, change: 40.0, cap: '850K', seed: 24483 },
+  { id: 3, name: 'M4A4 | 咆哮 (略有磨损)', hashname: 'M4A4 | Howl (Minimal Wear)', price: 40333.00, change: 0.00, cap: '700K', seed: 25910 },
+  { id: 4, name: '蝴蝶刀（★） | 渐变大理石 (崭新出厂)', hashname: '★ Butterfly Knife | Marble Fade (Factory New)', price: 7666.00, change: 40.6, cap: '2.1M', seed: 553390497 },
+  { id: 5, name: 'M4A4 | 合纵 (崭新出厂)', hashname: 'M4A4 | The Coalition (Factory New)', price: 14534.06, change: 45.89, cap: '300K', seed: 914739772862726144 },
 ];
 
 // 平台差价模拟数据
 const arbitrageItems = [
-  { id: 1, name: 'M4A1-S | 印花集', platformA: 'Steam', priceA: 120.50, platformB: 'Buff', priceB: 115.00, diff: 4.56 },
-  { id: 2, name: '沙漠之鹰 | 炽烈之炎', platformA: 'Steam', priceA: 450.00, platformB: 'IGXE', priceB: 430.00, diff: 4.44 },
-  { id: 3, name: '格洛克 | 渐变之色', platformA: 'Steam', priceA: 210.00, platformB: 'Buff', priceB: 202.00, diff: 3.81 },
-  { id: 4, name: 'AWP | 鬼退治', platformA: 'Steam', priceA: 300.00, platformB: 'IGXE', priceB: 290.00, diff: 3.33 },
+  { id: 1, name: 'M4A1 消音型 | 印花集 (久经沙场)', hashname: 'M4A1-S | Printstream (Field-Tested)', platformA: 'Steam', priceA: 1886.77, platformB: 'Buff', priceB: 1410.00, diff: 4.56 },
+  { id: 2, name: '沙漠之鹰 | 炽烈之炎 (崭新出厂)', hashname: 'Desert Eagle | Blaze (Factory New)', platformA: 'Steam', priceA: 7782.62, platformB: 'Youpin', priceB: 5649.50, diff: 4.44 },
+  { id: 3, name: '格洛克 18 型 | 渐变之色 (崭新出厂)', hashname: 'Glock-18 | Fade (Factory New)', platformA: 'Steam', priceA: 13916.98, platformB: 'Buff', priceB: 16776.50, diff: 3.81 },
+  { id: 4, name: 'AWP | 鬼退治 (崭新出厂)', hashname: 'AWP | Oni Taiji (Factory New)', platformA: 'Steam', priceA: 7426.62, platformB: 'C5GAME', priceB: 6249.00, diff: 3.33 },
 ];
 
 // 社区动态模拟数据
