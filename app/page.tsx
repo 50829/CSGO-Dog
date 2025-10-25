@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Search, ChevronDown, TrendingUp, TrendingDown, Bot, Send, DollarSign, Brain, BarChart, Users, Flame } from 'lucide-react';
+import { Search, ChevronDown, TrendingUp, TrendingDown, Bot, Send, Brain, BarChart, Users, Flame } from 'lucide-react';
 
 // --- 配色方案 ---
 const colors = {
@@ -101,10 +101,10 @@ const hotItems = [
 
 // 平台差价模拟数据
 const arbitrageItems = [
-  { id: 1, name: 'M4A1 消音型 | 印花集 (久经沙场)', hashname: 'M4A1-S | Printstream (Field-Tested)', platformA: 'Steam', priceA: 1886.77, platformB: 'Buff', priceB: 1410.00, diff: 4.56 },
-  { id: 2, name: '沙漠之鹰 | 炽烈之炎 (崭新出厂)', hashname: 'Desert Eagle | Blaze (Factory New)', platformA: 'Steam', priceA: 7782.62, platformB: 'Youpin', priceB: 5649.50, diff: 4.44 },
-  { id: 3, name: '格洛克 18 型 | 渐变之色 (崭新出厂)', hashname: 'Glock-18 | Fade (Factory New)', platformA: 'Steam', priceA: 13916.98, platformB: 'Buff', priceB: 16776.50, diff: 3.81 },
-  { id: 4, name: 'AWP | 鬼退治 (崭新出厂)', hashname: 'AWP | Oni Taiji (Factory New)', platformA: 'Steam', priceA: 7426.62, platformB: 'C5GAME', priceB: 6249.00, diff: 3.33 },
+  { id: 1, name: 'M4A1 消音型 | 印花集 (久经沙场)', hashname: 'M4A1-S | Printstream (Field-Tested)', wear: 0.26, platformA: 'Steam', priceA: 1886.77, platformB: 'Buff', priceB: 1410.00, diff: 4.56 },
+  { id: 2, name: '沙漠之鹰 | 炽烈之炎 (崭新出厂)', hashname: 'Desert Eagle | Blaze (Factory New)', wear: 0.008, platformA: 'Steam', priceA: 7782.62, platformB: 'Youpin', priceB: 5649.50, diff: 4.44 },
+  { id: 3, name: '格洛克 18 型 | 渐变之色 (崭新出厂)', hashname: 'Glock-18 | Fade (Factory New)', wear: 0.012, platformA: 'Steam', priceA: 13916.98, platformB: 'Buff', priceB: 16776.50, diff: 3.81 },
+  { id: 4, name: 'AWP | 鬼退治 (崭新出厂)', hashname: 'AWP | Oni Taiji (Factory New)', wear: 0.035, platformA: 'Steam', priceA: 7426.62, platformB: 'C5GAME', priceB: 6249.00, diff: 3.33 },
 ];
 
 // 社区动态模拟数据
@@ -589,7 +589,7 @@ const PositionAdvisor = ({ getPrediction }) => {
               总资金 (CNY)
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 flex items-center justify-center font-bold text-lg">¥</span>
               <input
                 type="number"
                 id="totalCapital"
@@ -861,6 +861,7 @@ const PlatformArbitrage = () => (
         <thead>
           <tr className="border-b" style={{borderColor: colors.border}}>
             <th className="p-3 text-sm font-semibold text-gray-400">饰品名称</th>
+            <th className="p-3 text-sm font-semibold text-gray-400">磨损度</th>
             <th className="p-3 text-sm font-semibold text-gray-400">平台 A (价格)</th>
             <th className="p-3 text-sm font-semibold text-gray-400">平台 B (价格)</th>
             <th className="p-3 text-sm font-semibold text-gray-400">差价 (CNY)</th>
@@ -874,6 +875,7 @@ const PlatformArbitrage = () => (
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <td className="p-3 text-sm font-medium text-white">{item.name}</td>
+              <td className="p-3 text-sm text-yellow-400 font-mono">{item.wear.toFixed(4)}</td>
               <td className="p-3 text-sm text-gray-300">{item.platformA} (¥{item.priceA.toFixed(2)})</td>
               <td className="p-3 text-sm text-gray-300">{item.platformB} (¥{item.priceB.toFixed(2)})</td>
               <td className="p-3 text-sm font-medium" style={{color: colors.up}}>¥{(item.priceA - item.priceB).toFixed(2)}</td>
