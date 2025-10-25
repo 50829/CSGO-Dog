@@ -1,5 +1,8 @@
 export const runtime = 'edge';
 
+// 导入共享存储
+import { saveItem, getStoreSize } from '@/lib/sharedStore';
+
 interface SteamDTData {
   name: string;
   prices: { date: string; price: number; volume?: number; timestamp?: number }[];
@@ -8,6 +11,7 @@ interface SteamDTData {
   volume24h: number;
   wear?: number;
   rawData?: any;
+  itemId?: string;
 }
 
 interface SteamDTApiResponse {
@@ -142,12 +146,31 @@ export async function GET(request: Request) {
     const data = await fetchSteamDTRealData(itemId);
     const futureTrend = generateFutureTrend(data.currentPrice);
     
+    // 保存到共享存储
+    try {
+      saveItem({
+        itemId: itemId,
+        name: data.name,
+        hashname: data.name,
+        currentPrice: data.currentPrice,
+        change24h: data.change24h,
+        volume24h: data.volume24h,
+        wear: data.wear,
+        prices: data.prices,
+        lastUpdated: Date.now()
+      });
+      console.log(`[SteamDT API] Saved item data for ${itemId}, store size: ${getStoreSize()}`);
+    } catch (saveError) {
+      console.error('[SteamDT API] Failed to save item data:', saveError);
+    }
+    
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           ...data,
-          futureTrend
+          futureTrend,
+          itemId: itemId
         }
       }),
       {

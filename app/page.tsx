@@ -9,6 +9,7 @@ const colors = {
   bg0: '#000000',
   bg1: '#121212',
   bg1Hover: '#191919',
+  bg2: '#1a1a1a',
   down: '#CA3F64',
   up: '#bcff2f', // 荧光绿
   textPrimary: '#E5E7EB',
@@ -93,11 +94,12 @@ const generateMiniChartData = (fullData: any[]) => {
 
 // 热门饰品模拟数据
 const hotItems = [
-  { id: 1, name: 'AK-47 | 火神 (崭新出厂)', hashname: 'AK-47 | Vulcan (Factory New)', price: 5699.00, change: 2.5, cap: '1.2M', seed: 24281 },
-  { id: 2, name: 'AWP | 巨龙传说 (久经沙场)', hashname: 'AWP | Dragon Lore (Field-Tested)', price: 48999.00, change: 40.0, cap: '850K', seed: 24483 },
-  { id: 3, name: 'M4A4 | 咆哮 (略有磨损)', hashname: 'M4A4 | Howl (Minimal Wear)', price: 40333.00, change: 0.00, cap: '700K', seed: 25910 },
-  { id: 4, name: '蝴蝶刀（★） | 渐变大理石 (崭新出厂)', hashname: '★ Butterfly Knife | Marble Fade (Factory New)', price: 7666.00, change: 40.6, cap: '2.1M', seed: 553390497 },
-  { id: 5, name: 'M4A4 | 合纵 (崭新出厂)', hashname: 'M4A4 | The Coalition (Factory New)', price: 14534.06, change: 45.89, cap: '300K', seed: 914739772862726144 },
+  { id: 1, name: 'AK-47 | 火神 (崭新出厂)', hashname: 'AK-47 | Vulcan (Factory New)', price: 5699.00, change: 2.5, cap: '1.2M', seed: 24281, itemId: null },
+  { id: 2, name: 'AWP | 巨龙传说 (久经沙场)', hashname: 'AWP | Dragon Lore (Field-Tested)', price: 48999.00, change: 40.0, cap: '850K', seed: 24483, itemId: null },
+  { id: 3, name: 'M4A4 | 咆哮 (略有磨损)', hashname: 'M4A4 | Howl (Minimal Wear)', price: 40333.00, change: 0.00, cap: '700K', seed: 25910, itemId: null },
+  { id: 4, name: '★ Sport Gloves | Pandora\'s Box (Field-Tested)', hashname: '★ Sport Gloves | Pandora\'s Box (Field-Tested)', price: 12000.00, change: 3.2, cap: '500K', seed: 495302338, itemId: '495302338', isRealData: true },
+  { id: 5, name: '蝴蝶刀（★） | 渐变大理石 (崭新出厂)', hashname: '★ Butterfly Knife | Marble Fade (Factory New)', price: 7666.00, change: 40.6, cap: '2.1M', seed: 553390497, itemId: null },
+  { id: 6, name: 'M4A4 | 合纵 (崭新出厂)', hashname: 'M4A4 | The Coalition (Factory New)', price: 14534.06, change: 45.89, cap: '300K', seed: 914739772862726144, itemId: null },
 ];
 
 // 平台差价模拟数据
@@ -194,27 +196,307 @@ const Header = () => {
 const MarketOverview = () => {
   const platforms = ['BUFF', 'Steam', 'UU', 'C5GAME'];
   const [selectedPlatform, setSelectedPlatform] = useState(platforms[0]);
-  const [selectedItem, setSelectedItem] = useState(hotItems[0]);
+  // 默认选择 Sport Gloves (索引 3)
+  const [selectedItem, setSelectedItem] = useState(hotItems[3]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [mounted, setMounted] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [loadingRealData, setLoadingRealData] = useState(false);
 
   // 使用 useState 存储图表数据
   const [chartData, setChartData] = useState([]);
+  
+  // 控制动画：只在初始加载和切换饰品时显示动画，缩放/拖拽时不显示
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  
+  // 缩放和平移状态
+  const [zoomState, setZoomState] = useState({
+    startIndex: 0,
+    endIndex: 0, // 0 表示显示全部
+    scale: 1, // 缩放比例 1 = 100%
+  });
+  
+  // 拖拽状态
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, startIndex: 0 });
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  
+  // 计算当前显示的数据
+  const displayData = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+    
+    let data;
+    if (zoomState.endIndex === 0 || zoomState.endIndex > chartData.length) {
+      // 显示全部数据
+      data = chartData;
+    } else {
+      // 显示缩放后的数据范围
+      data = chartData.slice(zoomState.startIndex, zoomState.endIndex);
+    }
+    
+    // 转换日期字符串为时间戳（用于时间刻度）
+    return data.map(d => ({
+      ...d,
+      timestamp: new Date(d.date.replace(' ', 'T')).getTime()
+    }));
+  }, [chartData, zoomState]);
+  
+  // 鼠标拖拽平移
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (zoomState.endIndex === 0) return; // 未缩放时不允许拖拽
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      startIndex: zoomState.startIndex,
+    });
+    
+    // 改变鼠标样式
+    if (chartContainerRef.current) {
+      chartContainerRef.current.style.cursor = 'grabbing';
+    }
+  }, [zoomState]);
+  
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || chartData.length === 0) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const rect = chartContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const chartWidth = rect.width;
+    const currentRange = zoomState.endIndex - zoomState.startIndex;
+    
+    // 根据拖拽距离计算索引偏移
+    const indexDelta = -Math.round((deltaX / chartWidth) * currentRange);
+    
+    let newStart = dragStart.startIndex + indexDelta;
+    let newEnd = newStart + currentRange;
+    
+    // 边界检查
+    if (newStart < 0) {
+      newStart = 0;
+      newEnd = currentRange;
+    } else if (newEnd > chartData.length) {
+      newEnd = chartData.length;
+      newStart = newEnd - currentRange;
+    }
+    
+    setZoomState({
+      ...zoomState,
+      startIndex: newStart,
+      endIndex: newEnd,
+    });
+  }, [isDragging, dragStart, chartData, zoomState]);
+  
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    
+    // 恢复鼠标样式
+    if (chartContainerRef.current) {
+      chartContainerRef.current.style.cursor = zoomState.endIndex === 0 ? 'default' : 'grab';
+    }
+  }, [zoomState]);
+  
+  const handleMouseLeave = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      if (chartContainerRef.current) {
+        chartContainerRef.current.style.cursor = zoomState.endIndex === 0 ? 'default' : 'grab';
+      }
+    }
+  }, [isDragging, zoomState]);
+  
+  // 双击重置缩放
+  const handleDoubleClick = useCallback(() => {
+    setZoomState({ startIndex: 0, endIndex: 0, scale: 1 });
+  }, []);
+
+  // 加载真实数据的函数
+  const loadRealItemData = async (itemId: string) => {
+    try {
+      console.log(`[MarketOverview] Loading real data for item: ${itemId}`);
+      setLoadingRealData(true);
+      
+      // 直接调用 steamdt API 获取数据（它会返回完整数据）
+      console.log(`[MarketOverview] Fetching from /api/steamdt?itemId=${itemId}`);
+      const response = await fetch(`/api/steamdt?itemId=${itemId}`);
+      console.log(`[MarketOverview] SteamDT API response status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[MarketOverview] SteamDT API failed with status ${response.status}`);
+        setLoadingRealData(false);
+        return false;
+      }
+      
+      const result = await response.json();
+      console.log(`[MarketOverview] SteamDT API result:`, result.success ? 'SUCCESS' : 'FAILED');
+      
+      if (result.success && result.data) {
+        const data = result.data;
+        console.log(`[MarketOverview] Got ${data.prices?.length || 0} price points`);
+        
+        // 转换真实数据为图表格式
+        const realData = data.prices.map((p: any) => ({
+          date: p.date,
+          price: p.price,
+          predictedPrice: null,
+          volume: p.volume
+        }));
+        
+        // 生成未来7天预测（每天1个点，共7个点）
+        const lastPrice = realData[realData.length - 1]?.price || selectedItem.price;
+        const lastDate = realData[realData.length - 1]?.date;
+        
+        // 检测真实数据的时间间隔（是否为小时级别）
+        const isHourlyData = lastDate && lastDate.includes(' ');
+        
+        const futureDates = [];
+        // 无论是小时级别还是日级别，预测都是每天1个点
+        const lastDateTime = isHourlyData 
+          ? new Date(lastDate.replace(' ', 'T'))
+          : new Date(lastDate);
+        
+        for (let i = 1; i <= 7; i++) {
+          const futureDate = new Date(lastDateTime);
+          futureDate.setDate(futureDate.getDate() + i);
+          
+          const trend = 1 + (Math.random() - 0.48) * 0.05;
+          const noise = 0.98 + Math.random() * 0.04;
+          const predictedPrice = lastPrice * Math.pow(trend, i) * noise;
+          
+          if (isHourlyData) {
+            // 保持与历史数据相同的时间格式（小时:分钟）
+            futureDates.push({
+              date: `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')} ${String(futureDate.getHours()).padStart(2, '0')}:${String(futureDate.getMinutes()).padStart(2, '0')}`,
+              price: null,
+              predictedPrice: Math.round(predictedPrice * 100) / 100,
+              volume: null
+            });
+          } else {
+            // 日级别格式
+            futureDates.push({
+              date: futureDate.toISOString().split('T')[0],
+              price: null,
+              predictedPrice: Math.round(predictedPrice * 100) / 100,
+              volume: null
+            });
+          }
+        }
+        
+        setChartData([...realData, ...futureDates]);
+        setShouldAnimate(true); // 启用动画
+        console.log(`[MarketOverview] Chart data updated with ${realData.length} real + ${futureDates.length} predicted points`);
+        
+        // 动画结束后禁用
+        setTimeout(() => setShouldAnimate(false), 800);
+        
+        return true;
+      }
+      
+      console.warn('[MarketOverview] No data in response:', result);
+      return false;
+    } catch (error) {
+      console.error('[MarketOverview] Failed to load real data:', error);
+      return false;
+    } finally {
+      setLoadingRealData(false);
+    }
+  };
 
   // 当选择的饰品或平台改变时,生成新的图表数据并触发过渡动画
   useEffect(() => {
     setMounted(true);
     if (selectedItem && selectedPlatform) {
       setIsTransitioning(true);
-      const newData = generatePriceData(selectedItem.price, selectedItem.seed, selectedPlatform);
-      setChartData(newData);
-      // 动画完成后重置过渡状态
-      const timer = setTimeout(() => setIsTransitioning(false), 800);
-      return () => clearTimeout(timer);
+      
+      // 重置缩放状态
+      setZoomState({ startIndex: 0, endIndex: 0, scale: 1 });
+      
+      // 启用动画
+      setShouldAnimate(true);
+      
+      // 如果是真实数据饰品，尝试加载真实数据
+      if (selectedItem.isRealData && selectedItem.itemId) {
+        // 先尝试从存储加载，如果没有则从 SteamDT 获取
+        loadRealItemData(selectedItem.itemId).then(success => {
+          if (!success) {
+            console.log('[MarketOverview] Failed to load real data, using mock data');
+            // 如果加载失败，使用模拟数据作为占位
+            const newData = generatePriceData(selectedItem.price, selectedItem.seed, selectedPlatform);
+            setChartData(newData);
+          }
+          setTimeout(() => {
+            setIsTransitioning(false);
+            setShouldAnimate(false); // 动画结束后禁用
+          }, 800);
+        });
+      } else {
+        // 使用模拟数据
+        const newData = generatePriceData(selectedItem.price, selectedItem.seed, selectedPlatform);
+        setChartData(newData);
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setShouldAnimate(false); // 动画结束后禁用
+        }, 800);
+      }
     }
   }, [selectedItem, selectedPlatform]);
+  
+  // 使用原生事件监听器处理滚轮，确保可以阻止默认滚动
+  useEffect(() => {
+    const chartContainer = chartContainerRef.current;
+    if (!chartContainer) return;
+    
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      
+      if (chartData.length === 0) return;
+      
+      // deltaY > 0: 向下滚动（缩小），deltaY < 0: 向上滚动（放大）
+      const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+      
+      const currentRange = zoomState.endIndex === 0 ? chartData.length : (zoomState.endIndex - zoomState.startIndex);
+      const newRange = Math.round(currentRange * zoomFactor);
+      
+      // 限制最小显示 5 个点，最大显示全部
+      if (newRange < 5 || newRange >= chartData.length) {
+        if (newRange >= chartData.length) {
+          // 重置到显示全部
+          setZoomState({ startIndex: 0, endIndex: 0, scale: 1 });
+        }
+        return;
+      }
+      
+      // 计算中心点（基于鼠标位置）
+      const rect = chartContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const chartWidth = rect.width;
+      const mouseRatio = mouseX / chartWidth;
+      
+      // 根据鼠标位置计算新的中心点
+      const currentStart = zoomState.endIndex === 0 ? 0 : zoomState.startIndex;
+      const currentEnd = zoomState.endIndex === 0 ? chartData.length : zoomState.endIndex;
+      const centerIndex = currentStart + (currentEnd - currentStart) * mouseRatio;
+      
+      const newStart = Math.max(0, Math.round(centerIndex - newRange * mouseRatio));
+      const newEnd = Math.min(chartData.length, newStart + newRange);
+      
+      setZoomState({
+        startIndex: newStart,
+        endIndex: newEnd,
+        scale: chartData.length / newRange,
+      });
+    };
+    
+    // 使用 passive: false 确保可以调用 preventDefault()
+    chartContainer.addEventListener('wheel', handleWheelNative, { passive: false });
+    
+    return () => {
+      chartContainer.removeEventListener('wheel', handleWheelNative);
+    };
+  }, [chartData, zoomState]);
 
   // 计算当前价格和预测涨跌
   const { currentPrice, predictedPrice, priceChange, changePercentage } = useMemo(() => {
@@ -251,15 +533,36 @@ const MarketOverview = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const isHistorical = data.date === '2025-10-24' || data.price !== null;
+      const isHistorical = data.price !== null;
+      
+      // label 现在是时间戳，需要转换为日期字符串
+      const date = new Date(label);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      // 检查是否为小时级别数据（通过原始数据判断）
+      const hasTime = data.date && data.date.includes(' ');
+      const formattedLabel = hasTime 
+        ? `${year}-${month}-${day} ${hours}:${minutes}` 
+        : `${year}-${month}-${day}`;
       
       return (
         <div className="p-3 rounded-lg shadow-xl" style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}>
-          <p className="text-sm text-gray-400">{`日期: ${label}`}</p>
-          {data.price && <p className="text-sm" style={{ color: colors.up }}>{`${isHistorical ? '现价' : '当前价格'}: ¥${data.price}`}</p>}
-          {data.predictedPrice && data.date !== '2025-10-24' && (
-            <p className="text-sm" style={{ color: data.predictedPrice >= data.price ? colors.up : colors.down }}>
-              {`AI预测: ¥${data.predictedPrice}`}
+          <p className="text-sm text-gray-400">{hasTime ? `时间: ${formattedLabel}` : `日期: ${formattedLabel}`}</p>
+          {data.price && (
+            <>
+              <p className="text-sm" style={{ color: colors.up }}>{`价格: ¥${data.price.toFixed(2)}`}</p>
+              {data.volume !== undefined && data.volume !== null && (
+                <p className="text-sm text-gray-400">{`成交量: ${data.volume} 件`}</p>
+              )}
+            </>
+          )}
+          {data.predictedPrice && !isHistorical && (
+            <p className="text-sm" style={{ color: data.predictedPrice >= (data.price || 0) ? colors.up : colors.down }}>
+              {`AI预测: ¥${data.predictedPrice.toFixed(2)}`}
             </p>
           )}
         </div>
@@ -352,12 +655,54 @@ const MarketOverview = () => {
             </div>
           </div>
         </div>
+
         
-        <div className="h-64 md:h-96">
+        <div 
+          ref={chartContainerRef}
+          className="h-64 md:h-96 select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          onDoubleClick={handleDoubleClick}
+          style={{ 
+            cursor: isDragging ? 'grabbing' : (zoomState.endIndex === 0 ? 'default' : 'grab'),
+            touchAction: 'none'
+          }}
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <LineChart 
+              data={displayData} 
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="5 5" stroke="#4B5563" strokeOpacity={0.3} vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: colors.textSecondary }} axisLine={{ stroke: colors.border }} tickLine={{ stroke: colors.border }} />
+              <XAxis 
+                dataKey="timestamp"
+                domain={['auto', 'auto']}
+                scale="time"
+                type="number"
+                tick={{ fontSize: 12, fill: colors.textSecondary }} 
+                axisLine={{ stroke: colors.border }} 
+                tickLine={{ stroke: colors.border }}
+                tickFormatter={(timestamp) => {
+                  const date = new Date(timestamp);
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const hours = String(date.getHours()).padStart(2, '0');
+                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                  
+                  // 判断是否为小时级别数据
+                  if (selectedItem.isRealData) {
+                    return `${month}/${day} ${hours}:${minutes}`;
+                  } else {
+                    return `${month}/${day}`;
+                  }
+                }}
+                angle={selectedItem.isRealData ? -45 : 0}
+                textAnchor={selectedItem.isRealData ? "end" : "middle"}
+                height={selectedItem.isRealData ? 60 : 30}
+              />
               <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12, fill: colors.textSecondary }} axisLine={{ stroke: colors.border }} tickLine={{ stroke: colors.border }} width={60} />
               <Tooltip content={<CustomTooltip active={undefined} payload={undefined} label={undefined} />} />
               <Line 
@@ -368,10 +713,11 @@ const MarketOverview = () => {
                 dot={false} 
                 name="当前价格" 
                 style={{ filter: `drop-shadow(0 0 2px ${colors.up})` }}
-                isAnimationActive={true}
-                animationDuration={800}
+                isAnimationActive={shouldAnimate}
+                animationDuration={shouldAnimate ? 800 : 0}
                 animationEasing="ease-in-out"
                 connectNulls={false}
+                animationBegin={0}
               />
               <Line 
                 type="monotone" 
@@ -382,14 +728,30 @@ const MarketOverview = () => {
                 dot={false} 
                 name="AI 7日预测" 
                 style={{ filter: `drop-shadow(0 0 2px ${priceChange >= 0 ? colors.up : colors.down})` }}
-                isAnimationActive={true}
-                animationDuration={800}
+                isAnimationActive={shouldAnimate}
+                animationDuration={shouldAnimate ? 800 : 0}
                 animationEasing="ease-in-out"
                 connectNulls={false}
+                animationBegin={0}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
+        
+        {/* 加载指示器 */}
+        {loadingRealData && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+            <div className="text-white text-sm">加载真实数据中...</div>
+          </div>
+        )}
+        
+        {/* 真实数据标识 */}
+        {selectedItem.isRealData && !loadingRealData && (
+          <div className="mt-2 text-xs text-gray-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-400"></span>
+            真实数据（小时级精度）
+          </div>
+        )}
       </div>
       
       {/* 右侧热门列表 */}
@@ -417,7 +779,12 @@ const MarketOverview = () => {
               >
                 {/* 栏位 1: Item details */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <img src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} alt={item.name} className="w-10 h-8 rounded object-cover" />
+                  <div className="relative">
+                    <img src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} alt={item.name} className="w-10 h-8 rounded object-cover" />
+                    {item.isRealData && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-black" title="真实数据"></span>
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{item.name}</p>
                     <p className="text-xs text-gray-400">市值: ¥{item.cap}</p>
