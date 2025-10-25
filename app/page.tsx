@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Search, ChevronDown, TrendingUp, TrendingDown, Bot, Send, DollarSign, Brain, BarChart, Users, Flame } from 'lucide-react';
+import { encode, decode } from 'js-base64';
 
 // --- 配色方案 ---
 const colors = {
@@ -143,7 +144,7 @@ const Header = () => {
       const offset = 80; // 考虑固定顶栏的高度
       const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
       const offsetPosition = elementPosition - offset;
-      
+
       window.scrollTo({
         top: offsetPosition,
         behavior: 'smooth'
@@ -416,7 +417,7 @@ const MarketOverview = () => {
               >
                 {/* 栏位 1: Item details */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <img src={`https://placehold.co/40x30/252525/FFFFFF?text=${item.name.substring(0,2)}`} alt={item.name} className="w-10 h-8 rounded object-cover" />
+                  <img src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} alt={item.name} className="w-10 h-8 rounded object-cover" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{item.name}</p>
                     <p className="text-xs text-gray-400">市值: ¥{item.cap}</p>
@@ -464,35 +465,40 @@ const PositionAdvisor = ({ getPrediction }) => {
     const suggestions = [
       { 
         id: 1, 
-        name: 'AK-47 | 火神', 
+        name: 'AK-47 | 火神 (崭新出厂)', 
+        hashname: 'AK-47 | Vulcan (Factory New)',
         type: '崭新出厂',
         unitPrice: 320.50,
         weight: 0.30,
       },
       { 
         id: 2, 
-        name: 'M4A4 | 咆哮', 
+        name: 'M4A4 | 咆哮 (略有磨损)', 
+        hashname: 'M4A4 | Howl (Minimal Wear)',
         type: '略有磨损',
         unitPrice: 4200.00,
         weight: 0.25,
       },
       { 
         id: 3, 
-        name: '蝴蝶刀 | 渐变大理石', 
-        type: '战痕累累',
+        name: '★ 蝴蝶刀 | 渐变大理石 (崭新出厂)', 
+        hashname: '★ Butterfly Knife | Marble Fade (Factory New)',
+        type: '崭新出厂',
         unitPrice: 1500.00,
         weight: 0.25,
       },
       { 
         id: 4, 
-        name: 'AWP | 巨龙传说', 
+        name: 'AWP | 巨龙传说 (崭新出厂)', 
+        hashname: 'AWP | Dragon Lore (Factory New)',
         type: '崭新出厂',
         unitPrice: 8500.00,
         weight: 0.15,
       },
       { 
         id: 5, 
-        name: 'USP-S | 永恒', 
+        name: 'USP-S | 永恒 (久经沙场)', 
+        hashname: 'USP-S | Eternal (Field-Tested)',
         type: '久经沙场',
         unitPrice: 85.00,
         weight: 0.05,
@@ -666,7 +672,7 @@ const PositionAdvisor = ({ getPrediction }) => {
                         {index + 1}
                       </div>
                       <img 
-                        src={`https://placehold.co/50x40/252525/FFFFFF?text=${item.name.substring(0,2)}`} 
+                        src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} 
                         alt={item.name} 
                         className="w-12 h-10 rounded object-cover" 
                       />
@@ -710,7 +716,8 @@ const BargainPredictor = () => {
   const highReturnItems = [
     { 
       id: 1, 
-      name: 'AK-47 | 二西莫夫', 
+      name: 'AK-47 | 二西莫夫 (久经沙场)', 
+      hashname: 'AK-47 | Asiimov (Field-Tested)',
       current: 156.80, 
       predicted: 203.84, 
       returnRate: 30.0,
@@ -719,7 +726,8 @@ const BargainPredictor = () => {
     },
     { 
       id: 2, 
-      name: 'M4A4 | 破晓之龙', 
+      name: 'M4A4 | 破晓之龙 (略有磨损)', 
+      hashname: 'M4A4 | The Coalition (Minimal Wear)',
       current: 385.50, 
       predicted: 481.88, 
       returnRate: 25.0,
@@ -728,7 +736,8 @@ const BargainPredictor = () => {
     },
     { 
       id: 3, 
-      name: 'USP-S | 杀戮确认', 
+      name: 'USP-S | 杀戮确认 (久经沙场)', 
+      hashname: 'USP-S | Kill Confirmed (Field-Tested)',
       current: 92.30, 
       predicted: 110.76, 
       returnRate: 20.0,
@@ -741,7 +750,8 @@ const BargainPredictor = () => {
   const highRiskItems = [
     { 
       id: 4, 
-      name: '蝴蝶刀 | 渐变之色', 
+      name: '★ 蝴蝶刀 | 渐变之色 (崭新出厂)', 
+      hashname: '★ Butterfly Knife | Fade (Factory New)',
       current: 1850.00, 
       predicted: 2590.00, 
       returnRate: 40.0,
@@ -750,7 +760,8 @@ const BargainPredictor = () => {
     },
     { 
       id: 5, 
-      name: 'AWP | 龙狙', 
+      name: 'AWP | 龙狙 (崭新出厂)', 
+      hashname: 'AWP | Dragon Lore (Factory New)',
       current: 6800.00, 
       predicted: 9180.00, 
       returnRate: 35.0,
@@ -759,9 +770,10 @@ const BargainPredictor = () => {
     },
     { 
       id: 6, 
-      name: '手套 | 血腥运动', 
-      current: 2100.00, 
-      predicted: 2730.00, 
+      name: '运动手套（★） | 潘多拉之盒 (久经沙场)', 
+      hashname: '★ Sport Gloves | Pandora\'s Box (Field-Tested)',
+      current: 30999.50, 
+      predicted: 31600.00, 
       returnRate: 30.0,
       reason: '手套类别稀缺，但品相要求高，价格波动较大。',
       risk: '高'
@@ -778,7 +790,7 @@ const BargainPredictor = () => {
     >
       <div className="flex items-start gap-4">
         <img 
-          src={`https://placehold.co/80x60/252525/FFFFFF?text=${item.name.substring(0,3)}`} 
+          src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} 
           alt={item.name} 
           className="w-20 h-15 rounded object-cover" 
         />
