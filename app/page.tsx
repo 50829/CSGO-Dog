@@ -450,14 +450,9 @@ const PositionAdvisor = ({ getPrediction }) => {
   const [strategy, setStrategy] = useState(50);
   const [totalCapital, setTotalCapital] = useState(0);
 
-  // 计算最小预算(所有热门饰品价格总和)
-  const minBudget = useMemo(() => {
-    return hotItems.reduce((sum, item) => sum + item.price, 0);
-  }, []);
-
   // 实时计算仓位分配(根据策略和预算自动更新)
   const positionAdvice = useMemo(() => {
-    if (totalCapital < minBudget) {
+    if (totalCapital <= 0) {
       return [];
     }
 
@@ -523,7 +518,7 @@ const PositionAdvisor = ({ getPrediction }) => {
       })
       .filter(s => s.suggestedUnits > 0)
       .slice(0, riskFactor > 0.7 ? 5 : riskFactor > 0.4 ? 4 : 3);
-  }, [strategy, totalCapital, minBudget]);
+  }, [strategy, totalCapital]);
 
   // 处理预算输入 - 阻止前导零
   const handleCapitalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -598,7 +593,6 @@ const PositionAdvisor = ({ getPrediction }) => {
           <div>
             <label htmlFor="totalCapital" className="block text-sm font-medium text-gray-300 mb-2">
               总资金 (CNY)
-              <span className="text-xs text-gray-500 ml-2">最低: ¥{minBudget.toFixed(2)}</span>
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -614,11 +608,6 @@ const PositionAdvisor = ({ getPrediction }) => {
                 placeholder="输入总资金"
               />
             </div>
-            {totalCapital > 0 && totalCapital < minBudget && (
-              <p className="mt-1 text-xs text-yellow-500">
-                提示: 至少需要 ¥{minBudget.toFixed(2)} 才能购买所有饰品
-              </p>
-            )}
           </div>
         </div>
 
@@ -631,7 +620,7 @@ const PositionAdvisor = ({ getPrediction }) => {
           {positionAdvice.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-gray-400 text-center">
-                请输入总资金(至少 ¥{minBudget.toFixed(2)})<br />
+                请输入总资金<br />
                 系统将根据策略实时计算仓位分配
               </p>
             </div>
@@ -938,7 +927,6 @@ const CommunityFeed = () => (
     </div>
   </section>
 );
-
 // 7. AI 助手
 const AIAssistant = ({ getPrediction }) => {
   const [messages, setMessages] = useState([
@@ -985,7 +973,7 @@ const AIAssistant = ({ getPrediction }) => {
       </h2>
       
       {/* 聊天记录 */}
-      <div className="h-64 overflow-y-auto space-y-4 p-4 rounded-lg mb-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
+      <div className="h-96 overflow-y-auto space-y-4 p-4 rounded-lg mb-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div 
@@ -1045,65 +1033,38 @@ export default function App() {
   }, []);
 
   /**
-   * 调用 Gemini API 获取虚构的预测理由
-   * @param {string} userQuery - 用户的提问或提示
-   * @param {string} systemRole - AI的角色定义
-   * @returns {Promise<string>} - AI 生成的分析文本
+   * 调用 AI API 获取预测理由
+   * 通过后端 API 路由调用,保护 API Key 安全
    */
   const getGeminiPrediction = useCallback(async (userQuery, systemRole) => {
-    const systemPrompt = systemRole || "你是一个AI助手。";
-    
-    const apiKey = ""; // API 密钥将由 Canvas 环境自动提供
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
+    try {
+      const response = await fetch('/api/ai-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-    };
+        body: JSON.stringify({
+          message: userQuery,
+          userContext: {
+            budget: 5000,
+            riskLevel: 'medium',
+            experience: 'intermediate',
+          }
+        }),
+      });
 
-    // 实现带指数退避的重试逻辑
-    let response;
-    let delay = 1000; // 初始延迟 1 秒
-    
-    for (let i = 0; i < 5; i++) { // 最多重试 5 次
-        try {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API 请求失败，状态码: ${response.status}`);
+      }
 
-            if (response.ok) {
-                const result = await response.json();
-                const candidate = result.candidates?.[0];
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    return candidate.content.parts[0].text; // 成功
-                } else {
-                    throw new Error('API 响应无效，未包含预测文本。');
-                }
-            } else if (response.status === 429 || response.status >= 500) {
-                // API 节流或服务器错误，等待后重试
-                console.warn(`API request failed with status ${response.status}. Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2; // 增加延迟
-            } else {
-                // 客户端错误（如 400 Bad Request），不应重试
-                throw new Error(`API 请求失败，状态码: ${response.status}`);
-            }
-        } catch (error) {
-            // 网络错误等，重试
-            console.warn(`API request failed: ${error.message}. Retrying in ${delay}ms...`);
-            if (i === 4) {
-                throw error; // 最后一次尝试失败，抛出错误
-            }
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-        }
+      const data = await response.json();
+      return data.response || '抱歉,无法生成回复';
+      
+    } catch (error) {
+      console.error('AI Assistant Error:', error);
+      throw error;
     }
-    
-    throw new Error('AI 预测请求在多次重试后失败。');
   }, []);
 
   return (
