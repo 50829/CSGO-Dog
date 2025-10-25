@@ -509,8 +509,9 @@ const MarketOverview = () => {
       };
     }
     
-    // 当前价格是历史数据的最后一个有效点
-    const lastPriceEntry = chartData.slice(0, 24).reverse().find(d => d.price !== null);
+    // 当前价格是图表上距离今天最近的一个有效历史数据点
+    // 从后往前查找第一个有效的历史价格（price !== null）
+    const lastPriceEntry = chartData.slice().reverse().find(d => d.price !== null);
     const current = lastPriceEntry ? lastPriceEntry.price : selectedItem.price;
 
     // 预测价格是预测数据的最后一个点
