@@ -18,7 +18,7 @@ const colors = {
 
 // --- 模拟数据 ---
 
-// 为每个枪支和平台生成唯一的价格数据
+// 为每个饰品和平台生成唯一的价格数据
 const generatePriceData = (basePrice: number, seed: number, platform: string) => {
   let data = [];
   let price = basePrice;
@@ -44,6 +44,9 @@ const generatePriceData = (basePrice: number, seed: number, platform: string) =>
   let predictedPrice = price;
   
   for (let i = 0; i < 30; i++) {
+    const day = i + 1;
+    const date = `2025-10-${day.toString().padStart(2, '0')}`;
+    
     const randomValue = seededRandom(seed + i * 137);
     price += (randomValue - 0.45) * fluctuation;
     if (price < basePrice * platformMultiplier / 2) price = basePrice * platformMultiplier / 2;
@@ -51,14 +54,14 @@ const generatePriceData = (basePrice: number, seed: number, platform: string) =>
     // 历史数据（前23天）
     if (i < 23) {
       data.push({ 
-        date: `10-${i + 1}`, 
+        date, 
         price: parseFloat(price.toFixed(2)), 
         predictedPrice: null 
       });
     } else if (i === 23) {
       predictedPrice = price;
       data.push({ 
-        date: `10-${i + 1}`, 
+        date, 
         price: parseFloat(price.toFixed(2)), 
         predictedPrice: parseFloat(predictedPrice.toFixed(2)) 
       });
@@ -70,7 +73,7 @@ const generatePriceData = (basePrice: number, seed: number, platform: string) =>
         predictedPrice = basePrice * platformMultiplier / 1.8;
       }
       data.push({ 
-        date: `10-${i + 1}`, 
+        date, 
         price: null, 
         predictedPrice: parseFloat(predictedPrice.toFixed(2)) 
       });
@@ -87,7 +90,7 @@ const generateMiniChartData = (fullData: any[]) => {
     .map(d => d.price);
 };
 
-// 热门枪支模拟数据
+// 热门饰品模拟数据
 const hotItems = [
   { id: 1, name: 'AK-47 | 火神 (崭新出厂)', hashname: 'AK-47 | Vulcan (Factory New)', price: 5699.00, change: 2.5, cap: '1.2M', seed: 24281 },
   { id: 2, name: 'AWP | 巨龙传说 (久经沙场)', hashname: 'AWP | Dragon Lore (Field-Tested)', price: 48999.00, change: 40.0, cap: '850K', seed: 24483 },
@@ -133,42 +136,58 @@ const MiniChart = ({ data, color }) => (
 // --- 核心组件 ---
 
 // 1. 顶栏
-const Header = () => (
-  <header style={{ backgroundColor: colors.bg1, borderBottom: `1px solid ${colors.border}` }} className="px-4 md:px-6 py-3 sticky top-0 z-50">
-    <nav className="flex items-center justify-between max-w-7xl mx-auto">
-      <div className="flex items-center gap-4">
-        {/* Logo */}
-        <img src="/csgodog.png" alt="CSGO-Dog Logo" className="h-10 w-10 object-contain" />
-        <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
-          CSGO-Dog
-        </span>
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
-          <a href="#market" className="hover:text-white">市场</a>
-          <a href="#arbitrage" className="hover:text-white">交易</a>
-          <a href="#ai-advisor" className="hover:text-white">AI 分析</a>
-          <a href="#community" className="hover:text-white">社区</a>
+const Header = () => {
+  const handleScrollTo = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80; // 考虑固定顶栏的高度
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <header style={{ backgroundColor: colors.bg1, borderBottom: `1px solid ${colors.border}` }} className="px-4 md:px-6 py-3 sticky top-0 z-50">
+      <nav className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex items-center gap-4">
+          {/* Logo */}
+          <img src="/csgodog.png" alt="CSGO-Dog Logo" className="h-10 w-10 object-contain" />
+          <span className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-teal-400">
+            CSGO-Dog
+          </span>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
+            <button onClick={() => handleScrollTo('market')} className="hover:text-white transition-colors">市场行情</button>
+            <button onClick={() => handleScrollTo('ai-advisor')} className="hover:text-white transition-colors">AI 建仓</button>
+            <button onClick={() => handleScrollTo('arbitrage')} className="hover:text-white transition-colors">平台套利</button>
+            <button onClick={() => handleScrollTo('community')} className="hover:text-white transition-colors">社区动态</button>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <input 
-            type="text" 
-            placeholder="搜索饰品..." 
-            className="bg-black text-gray-300 placeholder-gray-500 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{border: `1px solid ${colors.border}`}}
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="搜索饰品..." 
+              className="bg-black text-gray-300 placeholder-gray-500 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              style={{border: `1px solid ${colors.border}`}}
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          </div>
+          <button className="hidden sm:block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
+            登录
+          </button>
+          <button className="hidden sm:block text-gray-300 hover:text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors" style={{border: `1px solid ${colors.border}`}}>
+            注册
+          </button>
         </div>
-        <button className="hidden sm:block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
-          登录
-        </button>
-        <button className="hidden sm:block text-gray-300 hover:text-white text-sm font-semibold px-4 py-2 rounded-full" style={{border: `1px solid ${colors.border}`}}>
-          注册
-        </button>
-      </div>
-    </nav>
-  </header>
-);
+      </nav>
+    </header>
+  );
+};
 
 // 2. 市场概览 (K线图 + 热门)
 const MarketOverview = () => {
@@ -178,16 +197,21 @@ const MarketOverview = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [mounted, setMounted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // 使用 useState 存储图表数据
   const [chartData, setChartData] = useState([]);
 
-  // 当选择的枪支或平台改变时,生成新的图表数据
+  // 当选择的饰品或平台改变时,生成新的图表数据并触发过渡动画
   useEffect(() => {
     setMounted(true);
     if (selectedItem && selectedPlatform) {
+      setIsTransitioning(true);
       const newData = generatePriceData(selectedItem.price, selectedItem.seed, selectedPlatform);
       setChartData(newData);
+      // 动画完成后重置过渡状态
+      const timer = setTimeout(() => setIsTransitioning(false), 800);
+      return () => clearTimeout(timer);
     }
   }, [selectedItem, selectedPlatform]);
 
@@ -226,11 +250,17 @@ const MarketOverview = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const isHistorical = data.date === '2025-10-24' || data.price !== null;
+      
       return (
         <div className="p-3 rounded-lg shadow-xl" style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}>
-          <p className="text-sm text-gray-400">{`日期: 10-${label}`}</p>
-          {data.price && <p className="text-sm" style={{ color: colors.up }}>{`当前价格: $${data.price}`}</p>}
-          {data.predictedPrice && <p className="text-sm" style={{ color: colors.blue }}>{`预测价格: $${data.predictedPrice}`}</p>}
+          <p className="text-sm text-gray-400">{`日期: ${label}`}</p>
+          {data.price && <p className="text-sm" style={{ color: colors.up }}>{`${isHistorical ? '现价' : '当前价格'}: ¥${data.price}`}</p>}
+          {data.predictedPrice && data.date !== '2025-10-24' && (
+            <p className="text-sm" style={{ color: data.predictedPrice >= data.price ? colors.up : colors.down }}>
+              {`AI预测: ¥${data.predictedPrice}`}
+            </p>
+          )}
         </div>
       );
     }
@@ -300,7 +330,7 @@ const MarketOverview = () => {
           <div className="flex flex-col">
             <p className="text-sm text-gray-400">实时价格 ({selectedPlatform})</p>
             <p className="text-4xl font-bold" style={{color: colors.up}}>
-              ${currentPrice.toFixed(2)}
+              ¥{currentPrice.toFixed(2)}
             </p>
           </div>
           <div className="flex flex-col">
@@ -310,7 +340,7 @@ const MarketOverview = () => {
                 className="text-2xl font-bold" 
                 style={{color: priceChange >= 0 ? colors.up : colors.down}}
               >
-                {priceChange >= 0 ? '+' : '-'}${Math.abs(priceChange).toFixed(2)}
+                {priceChange >= 0 ? '+' : '-'}¥{Math.abs(priceChange).toFixed(2)}
               </span>
               <span 
                 className="text-sm font-medium" 
@@ -337,6 +367,10 @@ const MarketOverview = () => {
                 dot={false} 
                 name="当前价格" 
                 style={{ filter: `drop-shadow(0 0 2px ${colors.up})` }}
+                isAnimationActive={true}
+                animationDuration={800}
+                animationEasing="ease-in-out"
+                connectNulls={false}
               />
               <Line 
                 type="monotone" 
@@ -347,6 +381,10 @@ const MarketOverview = () => {
                 dot={false} 
                 name="AI 7日预测" 
                 style={{ filter: `drop-shadow(0 0 2px ${priceChange >= 0 ? colors.up : colors.down})` }}
+                isAnimationActive={true}
+                animationDuration={800}
+                animationEasing="ease-in-out"
+                connectNulls={false}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -359,12 +397,12 @@ const MarketOverview = () => {
         style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">热门枪支</h2>
-          <a href="#" className="text-sm text-blue-400 hover:text-blue-300">查看全部</a>
+          <h2 className="text-xl font-semibold text-white">热门饰品</h2>
+          {/* <a href="#" className="text-sm text-blue-400 hover:text-blue-300">查看全部</a> */}
         </div>
         <div className="space-y-3">
           {hotItems.map(item => {
-            // 为每个枪支生成当前平台的数据
+            // 为每个饰品生成当前平台的数据
             const itemData = generatePriceData(item.price, item.seed, selectedPlatform);
             const miniChartData = generateMiniChartData(itemData);
             
@@ -381,7 +419,7 @@ const MarketOverview = () => {
                   <img src={`https://placehold.co/40x30/252525/FFFFFF?text=${item.name.substring(0,2)}`} alt={item.name} className="w-10 h-8 rounded object-cover" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{item.name}</p>
-                    <p className="text-xs text-gray-400">市值: ${item.cap}</p>
+                    <p className="text-xs text-gray-400">市值: ¥{item.cap}</p>
                   </div>
                 </div>
                 
@@ -392,7 +430,7 @@ const MarketOverview = () => {
                 
                 {/* 栏位 3: Price and Change */}
                 <div className="text-right w-20"> 
-                  <p className="text-sm font-semibold text-white">${item.price.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-white">¥{item.price.toFixed(2)}</p>
                   <p className={`text-sm font-medium`} style={{color: item.change > 0 ? colors.up : colors.down}}>
                     {item.change > 0 ? '+' : ''}{item.change.toFixed(1)}%
                   </p>
@@ -408,10 +446,102 @@ const MarketOverview = () => {
 
 // 3. 仓位建议
 const PositionAdvisor = ({ getPrediction }) => {
-  const [strategy, setStrategy] = useState(50); // 0=稳定, 100=激进
-  const [budget, setBudget] = useState(1000);
-  const [loading, setLoading] = useState(false);
-  const [suggestion, setSuggestion] = useState(null);
+  const [strategy, setStrategy] = useState(50);
+  const [totalCapital, setTotalCapital] = useState(0);
+
+  // 计算最小预算(所有热门饰品价格总和)
+  const minBudget = useMemo(() => {
+    return hotItems.reduce((sum, item) => sum + item.price, 0);
+  }, []);
+
+  // 实时计算仓位分配(根据策略和预算自动更新)
+  const positionAdvice = useMemo(() => {
+    if (totalCapital < minBudget) {
+      return [];
+    }
+
+    const riskFactor = strategy / 100; // 0 稳定, 1 激进
+    const suggestions = [
+      { 
+        id: 1, 
+        name: 'AK-47 | 火神', 
+        type: '崭新出厂',
+        unitPrice: 320.50,
+        weight: 0.30,
+      },
+      { 
+        id: 2, 
+        name: 'M4A4 | 咆哮', 
+        type: '略有磨损',
+        unitPrice: 4200.00,
+        weight: 0.25,
+      },
+      { 
+        id: 3, 
+        name: '蝴蝶刀 | 渐变大理石', 
+        type: '战痕累累',
+        unitPrice: 1500.00,
+        weight: 0.25,
+      },
+      { 
+        id: 4, 
+        name: 'AWP | 巨龙传说', 
+        type: '崭新出厂',
+        unitPrice: 8500.00,
+        weight: 0.15,
+      },
+      { 
+        id: 5, 
+        name: 'USP-S | 永恒', 
+        type: '久经沙场',
+        unitPrice: 85.00,
+        weight: 0.05,
+      },
+    ];
+
+    // 根据策略调整权重分配
+    const strategyFactor = riskFactor > 0.5 ? 1.5 : 0.8;
+    const base = totalCapital * (0.4 + 0.6 * riskFactor); // 更激进使用更多资金
+    
+    return suggestions
+      .map(s => {
+        const allocation = base * s.weight * strategyFactor;
+        const units = Math.floor(allocation / s.unitPrice);
+        const actualAllocation = units * s.unitPrice;
+        
+        return {
+          ...s,
+          allocation: actualAllocation,
+          suggestedUnits: units,
+        };
+      })
+      .filter(s => s.suggestedUnits > 0)
+      .slice(0, riskFactor > 0.7 ? 5 : riskFactor > 0.4 ? 4 : 3);
+  }, [strategy, totalCapital, minBudget]);
+
+  // 处理预算输入 - 阻止前导零
+  const handleCapitalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // 空值处理
+    if (value === '') {
+      setTotalCapital(0);
+      return;
+    }
+    
+    // 移除前导零: "01" -> "1", "001" -> "1"
+    const cleanValue = value.replace(/^0+(?=\d)/, '');
+    const numValue = parseInt(cleanValue || '0', 10);
+    
+    if (!isNaN(numValue) && numValue >= 0) {
+      setTotalCapital(numValue);
+    }
+  };
+
+  // 计算总投资额
+  const totalInvestment = useMemo(() => {
+    return positionAdvice.reduce((sum, item) => sum + item.allocation, 0);
+  }, [positionAdvice]);
 
   const strategyLabel = useMemo(() => {
     if (strategy < 20) return '非常稳定';
@@ -420,25 +550,6 @@ const PositionAdvisor = ({ getPrediction }) => {
     if (strategy < 80) return '激进';
     return '非常激进';
   }, [strategy]);
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    setSuggestion(null);
-    const prompt = `为CS:GO饰品投资者制定一个投资组合建议。
-    投资策略: ${strategyLabel} (滑块值: ${strategy}/100)。
-    总预算: $${budget}。
-    请提供一个包含3-5个饰品名称、分配比例（%）和简短理由的建仓列表。以中文回答。`;
-    
-    try {
-      const result = await getPrediction(prompt, "你是一个专业的CS:GO饰品投资顾问。");
-      setSuggestion(result);
-    } catch (error) {
-      console.error(error);
-      setSuggestion("AI 建议生成失败，请稍后重试。");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <section 
@@ -479,46 +590,112 @@ const PositionAdvisor = ({ getPrediction }) => {
           
           {/* 预算输入 */}
           <div>
-            <label htmlFor="budget" className="block text-sm font-medium text-gray-300 mb-2">总预算 (USD)</label>
+            <label htmlFor="totalCapital" className="block text-sm font-medium text-gray-300 mb-2">
+              总资金 (CNY)
+              <span className="text-xs text-gray-500 ml-2">最低: ¥{minBudget.toFixed(2)}</span>
+            </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="number"
-                id="budget"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
+                id="totalCapital"
+                value={totalCapital || ''}
+                onChange={handleCapitalChange}
+                min={0}
+                step="100"
                 className="w-full bg-black text-white placeholder-gray-500 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{border: `1px solid ${colors.border}`}}
+                placeholder="输入总资金"
               />
             </div>
+            {totalCapital > 0 && totalCapital < minBudget && (
+              <p className="mt-1 text-xs text-yellow-500">
+                提示: 至少需要 ¥{minBudget.toFixed(2)} 才能购买所有饰品
+              </p>
+            )}
           </div>
-
-          {/* 生成按钮 */}
-          <button 
-            onClick={handleGenerate} 
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'AI 正在计算...' : '生成建仓建议'}
-          </button>
         </div>
 
         {/* 建议输出 */}
         <div className="md:col-span-2 rounded-lg p-6 min-h-[200px]" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
-          <h3 className="text-lg font-semibold text-gray-200 mb-4">AI 建仓模拟</h3>
-          {loading && (
+          <h3 className="text-lg font-semibold text-gray-200 mb-4">
+            仓位分配 {positionAdvice.length > 0 && <span className="text-sm text-gray-400 font-normal">({strategyLabel})</span>}
+          </h3>
+          
+          {positionAdvice.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              <p className="text-gray-400 text-center">
+                请输入总资金(至少 ¥{minBudget.toFixed(2)})<br />
+                系统将根据策略实时计算仓位分配
+              </p>
             </div>
-          )}
-          {suggestion && (
-            <div className="text-gray-300 whitespace-pre-line text-sm leading-relaxed">
-              {suggestion}
-            </div>
-          )}
-          {!loading && !suggestion && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-400 text-center">请设置您的策略和预算，<br />然后点击生成按钮获取建议。</p>
+          ) : (
+            <div className="space-y-4">
+              {/* 总投资统计 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg" style={{ backgroundColor: colors.bg1 }}>
+                  <div className="text-xs text-gray-400 mb-1">总资金</div>
+                  <div className="text-lg font-bold text-white">
+                    ¥{totalCapital.toFixed(2)}
+                  </div>
+                </div>
+                
+                <div className="p-3 rounded-lg" style={{ backgroundColor: colors.bg1 }}>
+                  <div className="text-xs text-gray-400 mb-1">实际投资</div>
+                  <div className="text-lg font-bold" style={{ color: colors.up }}>
+                    ¥{totalInvestment.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    利用率 {((totalInvestment / totalCapital) * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+              
+              {/* 建议列表 */}
+              <div className="space-y-3">
+              {positionAdvice.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className="p-3 rounded-lg transition-colors"
+                  style={{ backgroundColor: colors.bg1Hover }}
+                >
+                  <div className="flex items-center justify-between">
+                    {/* 序号和饰品信息 */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: colors.bg1, color: colors.up }}>
+                        {index + 1}
+                      </div>
+                      <img 
+                        src={`https://placehold.co/50x40/252525/FFFFFF?text=${item.name.substring(0,2)}`} 
+                        alt={item.name} 
+                        className="w-12 h-10 rounded object-cover" 
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-white truncate">{item.name}</p>
+                        <p className="text-xs text-gray-400">{item.type} × {item.suggestedUnits}</p>
+                      </div>
+                    </div>
+                    
+                    {/* 价格信息 */}
+                    <div className="text-right ml-4">
+                      <p className="text-sm font-semibold text-white">¥{item.allocation.toFixed(2)}</p>
+                      <p className="text-xs text-gray-400">¥{item.unitPrice.toFixed(2)}/件</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              </div>
+              
+              {/* 总计 */}
+              <div 
+                className="flex items-center justify-between p-4 rounded-lg mt-4"
+                style={{ backgroundColor: colors.bg1, border: `1px solid ${colors.border}` }}
+              >
+                <div className="text-white font-semibold">合计投资</div>
+                <div className="text-xl font-bold" style={{ color: colors.up }}>
+                  ¥{totalInvestment.toFixed(2)}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -529,10 +706,119 @@ const PositionAdvisor = ({ getPrediction }) => {
 
 // 4. 抄底预测
 const BargainPredictor = () => {
-  const bargains = [
-    { id: 1, name: 'AWP | 野火 (略磨)', current: 80, predicted: 110, reason: 'AI预测该系列即将绝版，潜力巨大。' },
-    { id: 2, name: '手套 | 渐变 (战痕)', current: 220, predicted: 280, reason: '数据显示低磨损战痕手套需求正在上升。' },
+  // 高收益配件 - 稳定升值潜力
+  const highReturnItems = [
+    { 
+      id: 1, 
+      name: 'AK-47 | 二西莫夫', 
+      current: 156.80, 
+      predicted: 203.84, 
+      returnRate: 30.0,
+      reason: 'AI预测该系列即将绝版，社区需求持续上升。',
+      risk: '低'
+    },
+    { 
+      id: 2, 
+      name: 'M4A4 | 破晓之龙', 
+      current: 385.50, 
+      predicted: 481.88, 
+      returnRate: 25.0,
+      reason: '稀有度高，收藏价值显著，历史数据显示稳定增长。',
+      risk: '中'
+    },
+    { 
+      id: 3, 
+      name: 'USP-S | 杀戮确认', 
+      current: 92.30, 
+      predicted: 110.76, 
+      returnRate: 20.0,
+      reason: '热门皮肤，市场流动性强，短期内有显著上涨空间。',
+      risk: '低'
+    },
   ];
+
+  // 高风险产品 - 波动大但潜力高
+  const highRiskItems = [
+    { 
+      id: 4, 
+      name: '蝴蝶刀 | 渐变之色', 
+      current: 1850.00, 
+      predicted: 2590.00, 
+      returnRate: 40.0,
+      reason: '刀具市场波动剧烈，但顶级收藏品长期看涨。',
+      risk: '高'
+    },
+    { 
+      id: 5, 
+      name: 'AWP | 龙狙', 
+      current: 6800.00, 
+      predicted: 9180.00, 
+      returnRate: 35.0,
+      reason: '传奇皮肤，价格受市场情绪影响大，高风险高回报。',
+      risk: '极高'
+    },
+    { 
+      id: 6, 
+      name: '手套 | 血腥运动', 
+      current: 2100.00, 
+      predicted: 2730.00, 
+      returnRate: 30.0,
+      reason: '手套类别稀缺，但品相要求高，价格波动较大。',
+      risk: '高'
+    },
+  ];
+
+  const renderItemCard = (item) => (
+    <div 
+      key={item.id} 
+      className="rounded-lg p-4 transition-all" 
+      style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}`, transition: 'background-color 0.3s' }} 
+      onMouseOver={(e) => e.currentTarget.style.backgroundColor = colors.bg1Hover}
+      onMouseOut={(e) => e.currentTarget.style.backgroundColor = colors.bg0}
+    >
+      <div className="flex items-start gap-4">
+        <img 
+          src={`https://placehold.co/80x60/252525/FFFFFF?text=${item.name.substring(0,3)}`} 
+          alt={item.name} 
+          className="w-20 h-15 rounded object-cover" 
+        />
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-semibold text-white">{item.name}</h3>
+            <span 
+              className="text-xs px-2 py-1 rounded-full whitespace-nowrap"
+              style={{ 
+                backgroundColor: item.risk === '低' ? 'rgba(188, 255, 47, 0.1)' : 
+                               item.risk === '中' ? 'rgba(255, 165, 0, 0.1)' : 
+                               'rgba(202, 63, 100, 0.1)',
+                color: item.risk === '低' ? colors.up : 
+                       item.risk === '中' ? '#FFA500' : 
+                       colors.down
+              }}
+            >
+              {item.risk}风险
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mt-2 line-clamp-2">{item.reason}</p>
+          <div className="flex items-center gap-4 mt-3">
+            <div>
+              <p className="text-xs text-gray-400">当前价格</p>
+              <p className="text-base font-bold text-white">¥{item.current.toFixed(2)}</p>
+            </div>
+            <div className="text-xl text-gray-500">&rarr;</div>
+            <div>
+              <p className="text-xs text-gray-400">AI 7日预测</p>
+              <p className="text-base font-bold" style={{color: colors.up}}>¥{item.predicted.toFixed(2)}</p>
+            </div>
+            <div className="ml-auto text-right">
+              <p className="text-xs text-gray-400">预期收益</p>
+              <p className="text-base font-bold" style={{color: colors.up}}>+{item.returnRate.toFixed(1)}%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section 
@@ -543,32 +829,28 @@ const BargainPredictor = () => {
         <TrendingUp className="w-6 h-6 text-green-400" style={{color: colors.up}} />
         AI 抄底预测
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {bargains.map(item => (
-          <div key={item.id} className="rounded-lg p-4 transition-all" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}`, transition: 'background-color 0.3s' }} 
-               onMouseOver={(e) => e.currentTarget.style.backgroundColor = colors.bg1Hover}
-               onMouseOut={(e) => e.currentTarget.style.backgroundColor = colors.bg0}
-          >
-            <div className="flex items-start gap-4">
-              <img src={`https://placehold.co/80x60/252525/FFFFFF?text=${item.name.substring(0,3)}`} alt={item.name} className="w-20 h-15 rounded object-cover" />
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white">{item.name}</h3>
-                <p className="text-sm text-gray-400 mt-1">{item.reason}</p>
-                <div className="flex items-center gap-4 mt-3">
-                  <div>
-                    <p className="text-xs text-gray-400">当前价格</p>
-                    <p className="text-lg font-bold text-white">${item.current.toFixed(2)}</p>
-                  </div>
-                  <div className="text-2xl text-gray-500">&rarr;</div>
-                  <div>
-                    <p className="text-xs text-gray-400">AI 7日预测</p>
-                    <p className="text-lg font-bold" style={{color: colors.up}}>${item.predicted.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 左侧: 高收益配件 */}
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{backgroundColor: colors.up}}></span>
+            高收益配件
+          </h3>
+          <div className="space-y-4">
+            {highReturnItems.map(renderItemCard)}
           </div>
-        ))}
+        </div>
+
+        {/* 右侧: 高风险产品 */}
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{backgroundColor: colors.down}}></span>
+            高风险饰品
+          </h3>
+          <div className="space-y-4">
+            {highRiskItems.map(renderItemCard)}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -592,7 +874,7 @@ const PlatformArbitrage = () => (
             <th className="p-3 text-sm font-semibold text-gray-400">饰品名称</th>
             <th className="p-3 text-sm font-semibold text-gray-400">平台 A (价格)</th>
             <th className="p-3 text-sm font-semibold text-gray-400">平台 B (价格)</th>
-            <th className="p-3 text-sm font-semibold text-gray-400">差价 (USD)</th>
+            <th className="p-3 text-sm font-semibold text-gray-400">差价 (CNY)</th>
             <th className="p-3 text-sm font-semibold text-gray-400">差价 (%)</th>
           </tr>
         </thead>
@@ -603,9 +885,9 @@ const PlatformArbitrage = () => (
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <td className="p-3 text-sm font-medium text-white">{item.name}</td>
-              <td className="p-3 text-sm text-gray-300">{item.platformA} (${item.priceA.toFixed(2)})</td>
-              <td className="p-3 text-sm text-gray-300">{item.platformB} (${item.priceB.toFixed(2)})</td>
-              <td className="p-3 text-sm font-medium" style={{color: colors.up}}>${(item.priceA - item.priceB).toFixed(2)}</td>
+              <td className="p-3 text-sm text-gray-300">{item.platformA} (¥{item.priceA.toFixed(2)})</td>
+              <td className="p-3 text-sm text-gray-300">{item.platformB} (¥{item.priceB.toFixed(2)})</td>
+              <td className="p-3 text-sm font-medium" style={{color: colors.up}}>¥{(item.priceA - item.priceB).toFixed(2)}</td>
               <td className="p-3 text-sm font-medium" style={{color: colors.up}}>
                 {((item.priceA - item.priceB) / item.priceA * 100).toFixed(2)}%
               </td>
@@ -631,7 +913,7 @@ const CommunityFeed = () => (
     <div className="space-y-4">
       {communityPosts.map(post => (
         <div key={post.id} className="rounded-lg p-4 flex gap-4" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
-          <img src={post.avatar} alt={post.user} className="w-10 h-10 rounded-full flex-shrink-0" />
+          <img src={post.avatar} alt={post.user} className="w-10 h-10 rounded-full shrink-0" />
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-white">{post.user}</span>
@@ -725,7 +1007,7 @@ const AIAssistant = ({ getPrediction }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
           placeholder="向 AI 助手提问..."
-          className="flex-grow bg-black text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="grow bg-black text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           style={{border: `1px solid ${colors.border}`}}
           disabled={loading}
         />
