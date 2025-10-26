@@ -98,8 +98,9 @@ const hotItems = [
   { id: 2, name: 'AWP | 巨龙传说 (久经沙场)', hashname: 'AWP | Dragon Lore (Field-Tested)', price: 48999.00, change: 40.0, cap: '850K', seed: 24483, itemId: null },
   { id: 3, name: 'M4A4 | 咆哮 (略有磨损)', hashname: 'M4A4 | Howl (Minimal Wear)', price: 40333.00, change: 0.00, cap: '700K', seed: 25910, itemId: null },
   { id: 4, name: '★ Sport Gloves | Pandora\'s Box (Field-Tested)', hashname: '★ Sport Gloves | Pandora\'s Box (Field-Tested)', price: 12000.00, change: 3.2, cap: '500K', seed: 495302338, itemId: '495302338', isRealData: true },
-  { id: 5, name: '蝴蝶刀（★） | 渐变大理石 (崭新出厂)', hashname: '★ Butterfly Knife | Marble Fade (Factory New)', price: 7666.00, change: 40.6, cap: '2.1M', seed: 553390497, itemId: null },
-  { id: 6, name: 'M4A4 | 合纵 (崭新出厂)', hashname: 'M4A4 | The Coalition (Factory New)', price: 14534.06, change: 45.89, cap: '300K', seed: 914739772862726144, itemId: null },
+  { id: 5, name: '★ Falchion Knife | Slaughter (Factory New)', hashname: '★ Falchion Knife | Slaughter (Factory New)', price: 1500.00, change: 0.0, cap: '300K', seed: 24708, itemId: '24708', isRealData: true },
+  { id: 6, name: '蝴蝶刀（★） | 渐变大理石 (崭新出厂)', hashname: '★ Butterfly Knife | Marble Fade (Factory New)', price: 7666.00, change: 40.6, cap: '2.1M', seed: 553390497, itemId: null },
+  { id: 7, name: 'M4A4 | 合纵 (崭新出厂)', hashname: 'M4A4 | The Coalition (Factory New)', price: 14534.06, change: 45.89, cap: '300K', seed: 914739772862726144, itemId: null },
 ];
 
 // 平台差价模拟数据
@@ -319,7 +320,80 @@ const MarketOverview = () => {
       console.log(`[MarketOverview] Loading real data for item: ${itemId}`);
       setLoadingRealData(true);
       
-      // 直接调用 steamdt API 获取数据（它会返回完整数据）
+      // 优先从 Supabase 数据库读取数据
+      console.log(`[MarketOverview] Fetching from /api/price-data?itemId=${itemId}`);
+      const dbResponse = await fetch(`/api/price-data?itemId=${itemId}`);
+      console.log(`[MarketOverview] Price Data API response status: ${dbResponse.status}`);
+      
+      if (dbResponse.ok) {
+        const dbResult = await dbResponse.json();
+        console.log(`[MarketOverview] Price Data API result:`, dbResult.success ? 'SUCCESS' : 'FAILED');
+        
+        if (dbResult.success && dbResult.data && dbResult.data.prices.length > 0) {
+          const data = dbResult.data;
+          console.log(`[MarketOverview] Got ${data.prices.length} price points from database`);
+          
+          // 转换数据库数据为图表格式
+          const realData = data.prices.map((p: any) => ({
+            date: p.date,
+            price: p.price,
+            predictedPrice: null,
+            volume: p.volume
+          }));
+          
+          // 生成未来7天预测（每天1个点，共7个点）
+          const lastPrice = realData[realData.length - 1]?.price || selectedItem.price;
+          const lastDate = realData[realData.length - 1]?.date;
+          
+          // 检测真实数据的时间间隔（是否为小时级别）
+          const isHourlyData = lastDate && lastDate.includes(' ');
+          
+          const futureDates = [];
+          // 无论是小时级别还是日级别，预测都是每天1个点
+          const lastDateTime = isHourlyData 
+            ? new Date(lastDate.replace(' ', 'T'))
+            : new Date(lastDate);
+          
+          for (let i = 1; i <= 7; i++) {
+            const futureDate = new Date(lastDateTime);
+            futureDate.setDate(futureDate.getDate() + i);
+            
+            const trend = 1 + (Math.random() - 0.48) * 0.05;
+            const noise = 0.98 + Math.random() * 0.04;
+            const predictedPrice = lastPrice * Math.pow(trend, i) * noise;
+            
+            if (isHourlyData) {
+              // 保持与历史数据相同的时间格式（小时:分钟）
+              futureDates.push({
+                date: `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')} ${String(futureDate.getHours()).padStart(2, '0')}:${String(futureDate.getMinutes()).padStart(2, '0')}`,
+                price: null,
+                predictedPrice: Math.round(predictedPrice * 100) / 100,
+                volume: null
+              });
+            } else {
+              // 日级别格式
+              futureDates.push({
+                date: futureDate.toISOString().split('T')[0],
+                price: null,
+                predictedPrice: Math.round(predictedPrice * 100) / 100,
+                volume: null
+              });
+            }
+          }
+          
+          setChartData([...realData, ...futureDates]);
+          setShouldAnimate(true); // 启用动画
+          console.log(`[MarketOverview] Chart data updated from database: ${realData.length} real + ${futureDates.length} predicted points`);
+          
+          // 动画结束后禁用
+          setTimeout(() => setShouldAnimate(false), 800);
+          
+          return true;
+        }
+      }
+      
+      // 如果数据库没有数据，尝试从 SteamDT API 获取
+      console.log(`[MarketOverview] No data in database, fetching from SteamDT API`);
       console.log(`[MarketOverview] Fetching from /api/steamdt?itemId=${itemId}`);
       const response = await fetch(`/api/steamdt?itemId=${itemId}`);
       console.log(`[MarketOverview] SteamDT API response status: ${response.status}`);
