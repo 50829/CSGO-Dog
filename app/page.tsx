@@ -906,67 +906,295 @@ const PositionAdvisor = ({ getPrediction }) => {
     }
 
     const riskFactor = strategy / 100; // 0 稳定, 1 激进
-    const suggestions = [
+    
+    // 定义饰品池，按价格从低到高排序
+    const allItems = [
+      // 低价位饰品（低风险）
       { 
-        id: 1, 
-        name: 'AK-47 | 火神 (崭新出厂)', 
-        hashname: 'AK-47 | Vulcan (Factory New)',
+        id: 6, 
+        name: 'Glock-18 | 渐变之色 (崭新出厂)', 
+        hashname: 'Glock-18 | Fade (Factory New)',
         type: '崭新出厂',
-        unitPrice: 5699.00,  // 与热门饰品一致
-        weight: 0.30,
+        unitPrice: 850.00,
+        risk: 'low',
+        predictedProfit: 3.5, // 7天预期收益率(%)
+        riskIndex: 2.5, // 风险指数(1-10)
       },
       { 
-        id: 2, 
-        name: 'M4A4 | 咆哮 (略有磨损)', 
-        hashname: 'M4A4 | Howl (Minimal Wear)',
-        type: '略有磨损',
-        unitPrice: 40333.00,  // 与热门饰品一致
-        weight: 0.25,
-      },
-      { 
-        id: 3, 
-        name: '★ 蝴蝶刀 | 渐变大理石 (崭新出厂)', 
-        hashname: '★ Butterfly Knife | Marble Fade (Factory New)',
+        id: 7, 
+        name: 'USP-S | 寂静杀手 (崭新出厂)', 
+        hashname: 'USP-S | Kill Confirmed (Factory New)',
         type: '崭新出厂',
-        unitPrice: 7666.00,  // 与热门饰品一致
-        weight: 0.25,
-      },
-      { 
-        id: 4, 
-        name: 'AWP | 巨龙传说 (久经沙场)', 
-        hashname: 'AWP | Dragon Lore (Field-Tested)',
-        type: '久经沙场',
-        unitPrice: 48999.00,  // 与热门饰品一致
-        weight: 0.15,
+        unitPrice: 1200.00,
+        risk: 'low',
+        predictedProfit: 4.2,
+        riskIndex: 2.8,
       },
       { 
         id: 5, 
         name: '★ Falchion Knife | Slaughter (Factory New)', 
         hashname: '★ Falchion Knife | Slaughter (Factory New)',
         type: '崭新出厂',
-        unitPrice: 1500.00,  // 与热门饰品一致
-        weight: 0.05,
+        unitPrice: 1500.00,
+        risk: 'low',
+        predictedProfit: 5.1,
+        riskIndex: 3.2,
+      },
+      { 
+        id: 8, 
+        name: 'Desert Eagle | 炽烈之炎 (崭新出厂)', 
+        hashname: 'Desert Eagle | Blaze (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 1800.00,
+        risk: 'low',
+        predictedProfit: 4.8,
+        riskIndex: 3.0,
+      },
+      { 
+        id: 9, 
+        name: 'M4A1-S | 印花集 (崭新出厂)', 
+        hashname: 'M4A1-S | Printstream (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 2500.00,
+        risk: 'low',
+        predictedProfit: 5.5,
+        riskIndex: 3.5,
+      },
+      
+      // 中价位饰品（中等风险）
+      { 
+        id: 10, 
+        name: 'AWP | 鬼退治 (崭新出厂)', 
+        hashname: 'AWP | Oni Taiji (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 3200.00,
+        risk: 'medium',
+        predictedProfit: 7.2,
+        riskIndex: 5.0,
+      },
+      { 
+        id: 11, 
+        name: 'AK-47 | 霓虹骑士 (崭新出厂)', 
+        hashname: 'AK-47 | Neon Rider (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 4100.00,
+        risk: 'medium',
+        predictedProfit: 8.5,
+        riskIndex: 5.5,
+      },
+      { 
+        id: 1, 
+        name: 'AK-47 | 火神 (崭新出厂)', 
+        hashname: 'AK-47 | Vulcan (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 5699.00,
+        risk: 'medium',
+        predictedProfit: 9.3,
+        riskIndex: 6.0,
+      },
+      { 
+        id: 12, 
+        name: 'M4A4 | 龙王 (崭新出厂)', 
+        hashname: 'M4A4 | The Emperor (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 6800.00,
+        risk: 'medium',
+        predictedProfit: 8.8,
+        riskIndex: 5.8,
+      },
+      { 
+        id: 3, 
+        name: '★ 蝴蝶刀 | 渐变大理石 (崭新出厂)', 
+        hashname: '★ Butterfly Knife | Marble Fade (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 7666.00,
+        risk: 'medium',
+        predictedProfit: 10.2,
+        riskIndex: 6.5,
+      },
+      
+      // 高价位饰品（高风险）
+      { 
+        id: 13, 
+        name: 'AWP | 野火 (崭新出厂)', 
+        hashname: 'AWP | Wildfire (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 12000.00,
+        risk: 'high',
+        predictedProfit: 12.5,
+        riskIndex: 7.5,
+      },
+      { 
+        id: 14, 
+        name: '★ Karambit | 渐变之色 (崭新出厂)', 
+        hashname: '★ Karambit | Fade (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 18500.00,
+        risk: 'high',
+        predictedProfit: 15.8,
+        riskIndex: 8.2,
+      },
+      { 
+        id: 15, 
+        name: 'AK-47 | 火蛇 (久经沙场)', 
+        hashname: 'AK-47 | Fire Serpent (Field-Tested)',
+        type: '久经沙场',
+        unitPrice: 25000.00,
+        risk: 'high',
+        predictedProfit: 18.5,
+        riskIndex: 8.8,
+      },
+      { 
+        id: 2, 
+        name: 'M4A4 | 咆哮 (略有磨损)', 
+        hashname: 'M4A4 | Howl (Minimal Wear)',
+        type: '略有磨损',
+        unitPrice: 40333.00,
+        risk: 'high',
+        predictedProfit: 22.0,
+        riskIndex: 9.2,
+      },
+      { 
+        id: 4, 
+        name: 'AWP | 巨龙传说 (久经沙场)', 
+        hashname: 'AWP | Dragon Lore (Field-Tested)',
+        type: '久经沙场',
+        unitPrice: 48999.00,
+        risk: 'high',
+        predictedProfit: 25.5,
+        riskIndex: 9.5,
       },
     ];
 
-    // 根据策略调整权重分配
-    const strategyFactor = riskFactor > 0.5 ? 1.5 : 0.8;
-    const base = totalCapital * (0.4 + 0.6 * riskFactor); // 更激进使用更多资金
+    // 根据风险偏好筛选饰品
+    let selectedItems = [];
+    if (riskFactor < 0.3) {
+      // 稳定策略：只选择低风险饰品
+      selectedItems = allItems.filter(item => item.risk === 'low');
+    } else if (riskFactor < 0.6) {
+      // 均衡策略：低风险 + 中等风险
+      selectedItems = allItems.filter(item => item.risk === 'low' || item.risk === 'medium');
+    } else if (riskFactor < 0.8) {
+      // 激进策略：所有饰品，偏向中高风险
+      selectedItems = allItems;
+    } else {
+      // 非常激进：所有饰品，偏向高风险
+      selectedItems = allItems;
+    }
+
+    // 计算收益风险比并排序
+    const itemsWithScore = selectedItems.map(item => ({
+      ...item,
+      // 收益风险比：预期收益 / 风险指数，用于评估性价比
+      profitRiskRatio: item.predictedProfit / item.riskIndex,
+      // 综合评分：考虑收益和风险偏好
+      score: item.predictedProfit * riskFactor + (10 - item.riskIndex) * (1 - riskFactor)
+    }));
+
+    // 计算实际可购买的配置
+    const results = [];
+    let remainingCapital = totalCapital;
     
-    return suggestions
-      .map(s => {
-        const allocation = base * s.weight * strategyFactor;
-        const units = Math.floor(allocation / s.unitPrice);
-        const actualAllocation = units * s.unitPrice;
+    // 策略1: 稳健策略 - 优先高收益风险比
+    if (riskFactor < 0.5) {
+      // 按收益风险比排序（优先选择性价比高的）
+      const sortedItems = [...itemsWithScore].sort((a, b) => b.profitRiskRatio - a.profitRiskRatio);
+      
+      // 均衡分配资金
+      const perItemBudget = remainingCapital / sortedItems.length;
+      
+      for (const item of sortedItems) {
+        const units = Math.floor(perItemBudget / item.unitPrice);
+        if (units > 0) {
+          const allocation = units * item.unitPrice;
+          remainingCapital -= allocation;
+          results.push({
+            ...item,
+            allocation,
+            suggestedUnits: units,
+          });
+        }
+      }
+      
+      // 剩余资金追加到性价比最高的饰品
+      if (remainingCapital > 0 && results.length > 0) {
+        const topItem = results[0];
+        const additionalUnits = Math.floor(remainingCapital / topItem.unitPrice);
+        if (additionalUnits > 0) {
+          topItem.suggestedUnits += additionalUnits;
+          topItem.allocation += additionalUnits * topItem.unitPrice;
+          remainingCapital -= additionalUnits * topItem.unitPrice;
+        }
+      }
+    } 
+    // 策略2: 激进策略 - 优先高收益潜力
+    else {
+      // 按综合评分排序（平衡收益和风险偏好）
+      const sortedItems = [...itemsWithScore].sort((a, b) => b.score - a.score);
+      
+      // 根据评分分配资金权重
+      const totalScore = sortedItems.reduce((sum, item) => sum + item.score, 0);
+      
+      for (const item of sortedItems) {
+        // 按评分比例分配资金
+        const budgetRatio = item.score / totalScore;
+        const itemBudget = totalCapital * budgetRatio;
+        const units = Math.floor(itemBudget / item.unitPrice);
         
-        return {
-          ...s,
-          allocation: actualAllocation,
-          suggestedUnits: units,
-        };
-      })
-      .filter(s => s.suggestedUnits > 0)
-      .slice(0, riskFactor > 0.7 ? 5 : riskFactor > 0.4 ? 4 : 3);
+        if (units > 0) {
+          const allocation = units * item.unitPrice;
+          remainingCapital -= allocation;
+          results.push({
+            ...item,
+            allocation,
+            suggestedUnits: units,
+          });
+        }
+      }
+      
+      // 剩余资金尝试购买评分最高且能负担的饰品
+      if (remainingCapital > 0) {
+        for (const item of sortedItems) {
+          const additionalUnits = Math.floor(remainingCapital / item.unitPrice);
+          if (additionalUnits > 0) {
+            const existingItem = results.find(r => r.id === item.id);
+            if (existingItem) {
+              existingItem.suggestedUnits += additionalUnits;
+              existingItem.allocation += additionalUnits * item.unitPrice;
+            } else {
+              results.push({
+                ...item,
+                allocation: additionalUnits * item.unitPrice,
+                suggestedUnits: additionalUnits,
+              });
+            }
+            remainingCapital -= additionalUnits * item.unitPrice;
+            break; // 只追加一次
+          }
+        }
+      }
+    }
+
+    // 如果还有剩余资金，尝试购买更便宜的饰品
+    if (remainingCapital > 0 && results.length < itemsWithScore.length) {
+      for (const item of itemsWithScore) {
+        if (!results.find(r => r.id === item.id)) {
+          const units = Math.floor(remainingCapital / item.unitPrice);
+          if (units > 0) {
+            const allocation = units * item.unitPrice;
+            remainingCapital -= allocation;
+            results.push({
+              ...item,
+              allocation,
+              suggestedUnits: units,
+            });
+          }
+        }
+      }
+    }
+
+    // 按分配金额从高到低排序
+    return results.sort((a, b) => b.allocation - a.allocation);
   }, [strategy, totalCapital]);
 
   // 处理预算输入 - 阻止前导零
@@ -994,11 +1222,10 @@ const PositionAdvisor = ({ getPrediction }) => {
   }, [positionAdvice]);
 
   const strategyLabel = useMemo(() => {
-    if (strategy < 20) return '非常稳定';
-    if (strategy < 40) return '稳定';
-    if (strategy < 60) return '均衡';
-    if (strategy < 80) return '激进';
-    return '非常激进';
+    if (strategy < 30) return { name: '稳健保守', desc: '优先低价饰品，分散投资' };
+    if (strategy < 60) return { name: '稳健均衡', desc: '低中价饰品组合，适度分散' };
+    if (strategy < 80) return { name: '积极进取', desc: '包含高价饰品，集中配置' };
+    return { name: '激进冒险', desc: '优先高价饰品，追求高收益' };
   }, [strategy]);
 
   return (
@@ -1022,9 +1249,12 @@ const PositionAdvisor = ({ getPrediction }) => {
         <div className="md:col-span-1 space-y-6">
           {/* 策略滑条 */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">投资策略: <span className="font-bold text-white">{strategyLabel}</span></label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              投资策略: <span className="font-bold text-white">{strategyLabel.name}</span>
+            </label>
+            <div className="text-xs text-gray-400 mb-3">{strategyLabel.desc}</div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">稳定</span>
+              <span className="text-sm text-gray-400">稳健</span>
               <input
                 type="range"
                 min="0"
@@ -1063,7 +1293,7 @@ const PositionAdvisor = ({ getPrediction }) => {
         {/* 建议输出 */}
         <div className="md:col-span-2 rounded-lg p-6 min-h-[200px]" style={{ backgroundColor: colors.bg0, border: `1px solid ${colors.border}` }}>
           <h3 className="text-lg font-semibold text-gray-200 mb-4">
-            仓位分配 {positionAdvice.length > 0 && <span className="text-sm text-gray-400 font-normal">({strategyLabel})</span>}
+            仓位分配 {positionAdvice.length > 0 && <span className="text-sm text-gray-400 font-normal">({strategyLabel.name})</span>}
           </h3>
           
           {positionAdvice.length === 0 ? (
@@ -1117,6 +1347,29 @@ const PositionAdvisor = ({ getPrediction }) => {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-white truncate">{item.name}</p>
                         <p className="text-xs text-gray-400">{item.type} × {item.suggestedUnits}</p>
+                      </div>
+                    </div>
+                    
+                    {/* 收益和风险指标 */}
+                    <div className="flex flex-col items-end gap-1 mr-4">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-400">7日预期:</span>
+                        <span className="text-sm font-semibold" style={{ color: item.predictedProfit > 0 ? colors.up : colors.down }}>
+                          +{item.predictedProfit.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-400">风险:</span>
+                        <span 
+                          className="text-sm font-semibold"
+                          style={{ 
+                            color: item.riskIndex <= 3.5 ? colors.up : 
+                                   item.riskIndex <= 6.5 ? '#FFA500' : 
+                                   colors.down 
+                          }}
+                        >
+                          {item.riskIndex.toFixed(1)}
+                        </span>
                       </div>
                     </div>
                     
