@@ -788,7 +788,12 @@ const MarketOverview = () => {
                 {/* 栏位 1: Item details */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative">
-                    <img src={`https://img.zbt.com/e/steam/item/730/` + encode(item.hashname) + `.png`} alt={item.name} className="w-10 h-8 rounded object-cover" />
+                    {/* Use proxy to avoid img.zbt.com cross-origin / hotlink restrictions */}
+                    <img
+                      src={`/api/proxy-image?u=${encodeURIComponent('https://img.zbt.com/e/steam/item/730/' + encode(item.hashname) + '.png')}`}
+                      alt={item.name}
+                      className="w-10 h-8 rounded object-cover"
+                    />
                     {item.isRealData && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-black" title="真实数据"></span>
                     )}
