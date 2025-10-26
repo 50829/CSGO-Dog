@@ -1729,7 +1729,7 @@ export default function App() {
         <AIAssistant getPrediction={getGeminiPrediction} />
       </main>
       <footer className="text-center py-8 mt-8" style={{ borderTop: `1px solid ${colors.border}` }}>
-        <p className="text-sm text-gray-500">&copy; 2025 CSGO-Dog. 版权所有. (数据为模拟生成, 仅供演示)</p>
+        <p className="text-sm text-gray-500">&copy; 2025 CSGO-Dog. 版权所有</p>
       </footer>
     </div>
   );
