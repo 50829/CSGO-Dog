@@ -912,7 +912,7 @@ const PositionAdvisor = ({ getPrediction }) => {
         name: 'AK-47 | 火神 (崭新出厂)', 
         hashname: 'AK-47 | Vulcan (Factory New)',
         type: '崭新出厂',
-        unitPrice: 320.50,
+        unitPrice: 5699.00,  // 与热门饰品一致
         weight: 0.30,
       },
       { 
@@ -920,7 +920,7 @@ const PositionAdvisor = ({ getPrediction }) => {
         name: 'M4A4 | 咆哮 (略有磨损)', 
         hashname: 'M4A4 | Howl (Minimal Wear)',
         type: '略有磨损',
-        unitPrice: 4200.00,
+        unitPrice: 40333.00,  // 与热门饰品一致
         weight: 0.25,
       },
       { 
@@ -928,23 +928,23 @@ const PositionAdvisor = ({ getPrediction }) => {
         name: '★ 蝴蝶刀 | 渐变大理石 (崭新出厂)', 
         hashname: '★ Butterfly Knife | Marble Fade (Factory New)',
         type: '崭新出厂',
-        unitPrice: 1500.00,
+        unitPrice: 7666.00,  // 与热门饰品一致
         weight: 0.25,
       },
       { 
         id: 4, 
-        name: 'AWP | 巨龙传说 (崭新出厂)', 
-        hashname: 'AWP | Dragon Lore (Factory New)',
-        type: '崭新出厂',
-        unitPrice: 8500.00,
+        name: 'AWP | 巨龙传说 (久经沙场)', 
+        hashname: 'AWP | Dragon Lore (Field-Tested)',
+        type: '久经沙场',
+        unitPrice: 48999.00,  // 与热门饰品一致
         weight: 0.15,
       },
       { 
         id: 5, 
-        name: 'USP-S | 永恒 (久经沙场)', 
-        hashname: 'USP-S | Eternal (Field-Tested)',
-        type: '久经沙场',
-        unitPrice: 85.00,
+        name: '★ Falchion Knife | Slaughter (Factory New)', 
+        hashname: '★ Falchion Knife | Slaughter (Factory New)',
+        type: '崭新出厂',
+        unitPrice: 1500.00,  // 与热门饰品一致
         weight: 0.05,
       },
     ];
